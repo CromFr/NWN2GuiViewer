@@ -1,0 +1,4 @@
+.dub/
+*.sublime-project
+*.sublime-workspace
+nwn2gui

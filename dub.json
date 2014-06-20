@@ -1,0 +1,9 @@
+{
+	"name": "nwn2gui",
+	"description": "Display NWN2 GUI",
+	"copyright": "Copyright © 2014, crom",
+	"authors": ["crom"],
+	"dependencies": {
+		"gtk-d:gtkd": "~master"
+	}
+}
