@@ -94,20 +94,20 @@ static:
 
 
 	T FindFileRes(T)(in string fileName){
-		//try return Get!T(fileName);
-		//catch(ResourceException e){
-		//	foreach(p ; path){
-		//		foreach(ref file ; dirEntries(p, SpanMode.depth)){
-		//			if(file.isFile && filenameCmp!(CaseSensitive.no)(file.name.baseName, fileName)==0){
-		//				std.stdio.writeln("Loaded ",fileName," from ",file.name);
-		//				return CreateRes!T(fileName, file);
-		//			}
-		//		}
-		//	}
+		try return Get!T(fileName);
+		catch(ResourceException e){
+			foreach(p ; path){
+				foreach(ref file ; dirEntries(p, SpanMode.depth)){
+					if(file.isFile && filenameCmp!(CaseSensitive.no)(file.name.baseName, fileName)==0){
+						std.stdio.writeln("Loaded ",fileName," from ",file.name);
+						return CreateRes!T(fileName, file);
+					}
+				}
+			}
 
-		//	throw new ResourceException("Resource '"~fileName~"' not found in path");
-		//}
-		return null;
+			throw new ResourceException("Resource '"~fileName~"' not found in path");
+		}
+		//return null;
 	}
 	__gshared DirEntry[] path;
 

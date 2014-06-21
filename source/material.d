@@ -8,7 +8,10 @@ import std.string;
 class Material{
 	this(DirEntry file){
 		//surface = IMG_Load(file.name.toStringz);
+		path = file.name;
 	}
+
+	string path;
 
 	//SDL_Surface* surface = null;
 }

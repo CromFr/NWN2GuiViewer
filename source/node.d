@@ -4,7 +4,11 @@ import std.stdio;
 import std.conv : to;
 import std.traits;
 import std.string : toLower;
-//import derelict.sdl2.sdl;
+import gtk.MainWindow;
+import gtk.Widget;
+import gtk.Layout;
+import gtk.Image;
+import gdk.RGBA;
 import material;
 import resource;
 
@@ -30,13 +34,22 @@ enum HeightMacro : string{
 
 class Node {
 	this(string name_, Node parent_, in Vect position_=Vect(0,0), in Vect size_=Vect(0,0)) {
-		parent = parent_;
-		if(parent !is null)
-			parent.children ~= this;
 
 		name = name_;
 		position = position_;
 		size = size_;
+
+		parent = parent_;
+
+		container = new Layout(null, null);
+		container.setSizeRequest(size.x, size.y);
+		container.setHscrollPolicy(GtkScrollablePolicy.MINIMUM);
+		container.setVscrollPolicy(GtkScrollablePolicy.MINIMUM);
+	
+		if(parent !is null){
+			parent.children ~= this;
+			parent.container.put(container, position.x, position.y);
+		}
 	}
 
 	string name;
@@ -45,6 +58,8 @@ class Node {
 	Vect size;
 
 	Node children[];
+
+	Layout container;
 
 	@property Vect absposition(){
 		Vect ret = Vect(0,0);
@@ -55,27 +70,15 @@ class Node {
 		}
 		return ret;
 	}
-
-
-	abstract void Draw();
-
-	//Called to draw the node and all its children
-	final void EngineDraw(){
-		Draw();
-		foreach(child ; children)
-			child.EngineDraw();
-	}
-
-	@disable mixin template NodeCtor()
-	{
-		this(string name_, Node parent_, Vect position_=Vect(0,0), Vect size_=Vect(0,0)){
-			super(name_, parent_, position_, size_);
-		}
-	}
 }
 
 
 class UIScene : Node {
+	static Get(){
+		return m_inst;
+	}
+
+
 	this(ref string[string] attributes){
 		string name;
 		Vect size;
@@ -110,14 +113,26 @@ class UIScene : Node {
 		}
 
 		super(name, null, Vect(0,0), size);
+
+		//Create window
+		window = new MainWindow(name);
+		window.setIconFromFile("res/icon.ico");
+
+		//Forbid resize
+		window.setDefaultSize(size.x, size.y);
+		auto geom = GdkGeometry(size.x, size.y, size.x, size.y);
+		window.setGeometryHints(null, geom, GdkWindowHints.HINT_MIN_SIZE|GdkWindowHints.HINT_MAX_SIZE);
+		window.overrideBackgroundColor(GtkStateFlags.NORMAL, new RGBA(0,0,0,1));
+		
+		window.add(container);
+
+		//Register instance
+		m_inst = this;
 	}
 
-	//SDL_Surface* window;
+	MainWindow window;
 
-	override void Draw(){
-		writeln("Scene draw");
-		//SDL_FillRect(window,null, 0xFFFFFFFF);
-	}
+	private __gshared UIScene m_inst;
 }
 
 
@@ -173,12 +188,8 @@ class UIPane : Node {
 			}
 			attributes.remove("y");
 		}
-
 		super(name, parent, pos, size);
-	}
-
-	override void Draw(){
-
+		//container.overrideBackgroundColor(GtkStateFlags.NORMAL, new RGBA(0,1,0,1));
 	}
 }
 
@@ -236,12 +247,15 @@ class UIFrame : UIPane {
 		}
 
 		super(parent, attributes);
-	}
 
-	override void Draw(){
-		
-	}
+		if(fill !is null){
+			auto img = new Image(fill.path);
+			//auto img = new Image("/run/media/Windows/Program Files (x86)/Neverwinter Nights 2/UI/default/images/generic/dark_rock_tile.tga");
+			container.add(img);
+		}
 
+		//modifyStyle(new StyleContext())
+	}
 
 
 	enum FillStyle : string{

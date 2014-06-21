@@ -6,19 +6,15 @@ import std.string;
 import core.thread;
 import std.datetime : StopWatch;
 
-import gtk.Main : Main;
-import gtk.MainWindow : MainWindow;
-import gtk.Widget;
+import gtk.Main;
 import gtkc.gdktypes;
 
 import resource;
 import node;
 
-UIScene scene;
-MainWindow win;
-
 void main(string[] args)
 {
+	Main.init(args);//init GTK
 
     //Handle command-line args
     string file;
@@ -27,7 +23,6 @@ void main(string[] args)
 		    "f|file",  &file,
 		    "c|fullcheck", &bCheck);
 
-	Main.init(args);//init GTK
 
 	//Use last arg as file path
 	if(file=="" && args.length==2)
@@ -67,17 +62,7 @@ void main(string[] args)
 
 
 	//=================================================== Create window
-	win = new MainWindow(scene.name);
-	win.setIconFromFile("res/icon.ico");
-
-	//Forbid resize
-	win.setDefaultSize(scene.size.x, scene.size.y);
-	auto geom = GdkGeometry(scene.size.x, scene.size.y, scene.size.x, scene.size.y);
-	win.setGeometryHints(null, geom, GdkWindowHints.HINT_MIN_SIZE|GdkWindowHints.HINT_MAX_SIZE); 
-
-	win.show();
-
-
+	UIScene.Get.window.showAll();
 	Main.run();
 }
 
@@ -85,12 +70,14 @@ void Parse(in Element elmt, Node parent, string sDecal=""){
 	writeln(sDecal~elmt.tag.name);//, (("name" in elmt.tag.attr)? ":"~elmt.tag.attr["name"] : ""));
 
 	if(parent is null)
-		parent = scene;
+		parent = UIScene.Get;
 
 	string[string] attrList = to!(string[string])(elmt.tag.attr);
 	switch(elmt.tag.name){
+		case "xml":
+			break;
 		case "UIScene": 
-			scene = new UIScene(attrList); 
+			parent = new UIScene(attrList); 
 			break;
 		case "UIPane": 
 			parent = new UIPane(parent, attrList);
@@ -106,7 +93,7 @@ void Parse(in Element elmt, Node parent, string sDecal=""){
 	}
 
 	foreach(e ; elmt.elements){
-		Parse(e, null,sDecal~"  ");
+		Parse(e, parent,sDecal~"  ");
 	}
 
 }
