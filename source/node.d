@@ -9,6 +9,7 @@ import gtk.Widget;
 import gtk.Layout;
 import gtk.Image;
 import gdk.RGBA;
+import gtk.CssProvider;
 import material;
 import resource;
 
@@ -122,7 +123,7 @@ class UIScene : Node {
 		window.setDefaultSize(size.x, size.y);
 		auto geom = GdkGeometry(size.x, size.y, size.x, size.y);
 		window.setGeometryHints(null, geom, GdkWindowHints.HINT_MIN_SIZE|GdkWindowHints.HINT_MAX_SIZE);
-		window.overrideBackgroundColor(GtkStateFlags.NORMAL, new RGBA(0,0,0,1));
+		//window.overrideBackgroundColor(GtkStateFlags.NORMAL, new RGBA(0,0,0,1));
 		
 		window.add(container);
 
@@ -248,13 +249,37 @@ class UIFrame : UIPane {
 
 		super(parent, attributes);
 
-		if(fill !is null){
-			auto img = new Image(fill.path);
-			//auto img = new Image("/run/media/Windows/Program Files (x86)/Neverwinter Nights 2/UI/default/images/generic/dark_rock_tile.tga");
-			container.add(img);
-		}
+		//if(fill !is null){
+		//	//auto img = new Image("/run/media/Windows/Program Files (x86)/Neverwinter Nights 2/UI/default/images/generic/dark_rock_tile.tga");
+		//	auto img = new Image(fill.path);
+		//	container.add(img);
+		//}
 
-		//modifyStyle(new StyleContext())
+		container.addOnDraw(&OnDraw);
+		//img = new Image("/run/media/Windows/Program Files (x86)/Neverwinter Nights 2/UI/default/images/generic/dark_rock_tile.tga");
+	}
+	
+
+	import gdk.Cairo;
+	import cairo.Context;
+	import cairo.ImageSurface;
+	import cairo.Pattern;
+	import gdk.Pixbuf;
+	bool OnDraw(Context c, Widget w){
+		auto pbuf = new Pixbuf("/run/media/Windows/Program Files (x86)/Neverwinter Nights 2/UI/default/images/generic/dark_rock_tile.tga");
+		//pbuf = pbuf.scaleSimple(size.x,size.y,GdkInterpType.BILINEAR);
+
+		auto surface = ImageSurface.create(cairo_format_t.ARGB32, pbuf.getWidth, pbuf.getHeight);
+		auto ctx = Context.create(surface);
+		setSourcePixbuf(ctx, pbuf, 0, 0);
+		ctx.paint();
+
+		auto pat = Pattern.createForSurface(surface);
+		pat.setExtend(CairoExtend.REPEAT);
+		c.setSource(pat);
+		c.paint();
+
+		return true;
 	}
 
 
@@ -269,11 +294,3 @@ class UIFrame : UIPane {
 	uint border;
 	Material topleft, top, topright, left, right, bottomleft, bottom, bottomright;
 }
-
-//class UIButton : Node {
-//	mixin NodeCtor;
-
-//	override void Draw(){
-
-//	}
-//}
