@@ -198,10 +198,10 @@ class UIPane : Node {
 		//container.overrideBackgroundColor(GtkStateFlags.NORMAL, new RGBA(0,1,0,1));
 	}
 }
-		Material mfill, mtopleft, mtop, mtopright, mleft, mright, mbottomleft, mbottom, mbottomright;
 
 class UIFrame : UIPane {
 	this(Node parent, ref string[string] attributes){
+		Material mfill, mtopleft, mtop, mtopright, mleft, mright, mbottomleft, mbottom, mbottomright;
 
 
 		foreach(key, value ; attributes.dup){
@@ -250,6 +250,10 @@ class UIFrame : UIPane {
 					mbottomright = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
+				case "border": 
+					border = value.to!uint;
+					attributes.remove(key);
+					break;
 				default: break;
 			}
 		}
@@ -261,9 +265,9 @@ class UIFrame : UIPane {
 			if(fillstyle == FillStyle.Stretch)
 				pbuf = pbuf.scaleSimple(size.x,size.y,GdkInterpType.BILINEAR);
 
-			auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
+			auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth-border, pbuf.getHeight-border);
 			auto ctx = Context.create(surface);
-			setSourcePixbuf(ctx, pbuf, 0, 0);
+			setSourcePixbuf(ctx, pbuf, border, border);
 			ctx.paint();
 
 			fill = Pattern.createForSurface(surface);
@@ -295,6 +299,6 @@ class UIFrame : UIPane {
 	Pattern fill;
 	FillStyle fillstyle = FillStyle.Stretch;
 
-	uint border;
+	uint border = 0;
 	Pattern topleft, top, topright, left, right, bottomleft, bottom, bottomright;
 }
