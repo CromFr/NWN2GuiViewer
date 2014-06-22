@@ -107,7 +107,6 @@ static:
 
 			throw new ResourceException("Resource '"~fileName~"' not found in path");
 		}
-		//return null;
 	}
 	__gshared DirEntry[] path;
 

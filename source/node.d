@@ -9,7 +9,12 @@ import gtk.Widget;
 import gtk.Layout;
 import gtk.Image;
 import gdk.RGBA;
-import gtk.CssProvider;
+import gdk.Cairo;
+import cairo.Context;
+import cairo.ImageSurface;
+import cairo.Pattern;
+import gdk.Pixbuf;
+import cairo.Surface;
 import material;
 import resource;
 
@@ -123,7 +128,7 @@ class UIScene : Node {
 		window.setDefaultSize(size.x, size.y);
 		auto geom = GdkGeometry(size.x, size.y, size.x, size.y);
 		window.setGeometryHints(null, geom, GdkWindowHints.HINT_MIN_SIZE|GdkWindowHints.HINT_MAX_SIZE);
-		//window.overrideBackgroundColor(GtkStateFlags.NORMAL, new RGBA(0,0,0,1));
+		window.overrideBackgroundColor(GtkStateFlags.NORMAL, new RGBA(0,0,0,1));
 		
 		window.add(container);
 
@@ -193,54 +198,56 @@ class UIPane : Node {
 		//container.overrideBackgroundColor(GtkStateFlags.NORMAL, new RGBA(0,1,0,1));
 	}
 }
+		Material mfill, mtopleft, mtop, mtopright, mleft, mright, mbottomleft, mbottom, mbottomright;
 
 class UIFrame : UIPane {
 	this(Node parent, ref string[string] attributes){
+
 
 		foreach(key, value ; attributes.dup){
 			switch(key){
 				case "fillstyle":
 					switch(value){
-						case FillStyle.Stretch: value=FillStyle.Stretch; break;
-						case FillStyle.Tile: value=FillStyle.Tile; break;
+						case FillStyle.Stretch: fillstyle=FillStyle.Stretch; break;
+						case FillStyle.Tile: fillstyle=FillStyle.Tile; break;
 						default: throw new Exception("Unknown fillstyle "~value);
 					}
 					attributes.remove(key);
 					break;
 				case "fill": 
-					fill = Resource.FindFileRes!Material(value.toLower);
+					mfill = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "topleft": 
-					topleft = Resource.FindFileRes!Material(value.toLower);
+					mtopleft = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "top": 
-					top = Resource.FindFileRes!Material(value.toLower);
+					mtop = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "topright": 
-					topright = Resource.FindFileRes!Material(value.toLower);
+					mtopright = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "left": 
-					left = Resource.FindFileRes!Material(value.toLower);
+					mleft = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "right": 
-					right = Resource.FindFileRes!Material(value.toLower);
+					mright = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "bottomleft": 
-					bottomleft = Resource.FindFileRes!Material(value.toLower);
+					mbottomleft = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "bottom": 
-					bottom = Resource.FindFileRes!Material(value.toLower);
+					mbottom = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "bottomright": 
-					bottomright = Resource.FindFileRes!Material(value.toLower);
+					mbottomright = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				default: break;
@@ -249,34 +256,31 @@ class UIFrame : UIPane {
 
 		super(parent, attributes);
 
-		//if(fill !is null){
-		//	//auto img = new Image("/run/media/Windows/Program Files (x86)/Neverwinter Nights 2/UI/default/images/generic/dark_rock_tile.tga");
-		//	auto img = new Image(fill.path);
-		//	container.add(img);
-		//}
+		if(mfill !is null){
+			Pixbuf pbuf = mfill;
+			if(fillstyle == FillStyle.Stretch)
+				pbuf = pbuf.scaleSimple(size.x,size.y,GdkInterpType.BILINEAR);
+
+			auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
+			auto ctx = Context.create(surface);
+			setSourcePixbuf(ctx, pbuf, 0, 0);
+			ctx.paint();
+
+			fill = Pattern.createForSurface(surface);
+
+			if(fillstyle == FillStyle.Tile)
+				fill.setExtend(CairoExtend.REPEAT);
+			else
+				fill.setExtend(CairoExtend.NONE);
+		}
 
 		container.addOnDraw(&OnDraw);
-		//img = new Image("/run/media/Windows/Program Files (x86)/Neverwinter Nights 2/UI/default/images/generic/dark_rock_tile.tga");
 	}
 	
 
-	import gdk.Cairo;
-	import cairo.Context;
-	import cairo.ImageSurface;
-	import cairo.Pattern;
-	import gdk.Pixbuf;
+
 	bool OnDraw(Context c, Widget w){
-		auto pbuf = new Pixbuf("/run/media/Windows/Program Files (x86)/Neverwinter Nights 2/UI/default/images/generic/dark_rock_tile.tga");
-		//pbuf = pbuf.scaleSimple(size.x,size.y,GdkInterpType.BILINEAR);
-
-		auto surface = ImageSurface.create(cairo_format_t.ARGB32, pbuf.getWidth, pbuf.getHeight);
-		auto ctx = Context.create(surface);
-		setSourcePixbuf(ctx, pbuf, 0, 0);
-		ctx.paint();
-
-		auto pat = Pattern.createForSurface(surface);
-		pat.setExtend(CairoExtend.REPEAT);
-		c.setSource(pat);
+		c.setSource(fill);
 		c.paint();
 
 		return true;
@@ -288,9 +292,9 @@ class UIFrame : UIPane {
 		Tile="tile"
 	}
 
-	Material fill;
+	Pattern fill;
 	FillStyle fillstyle = FillStyle.Stretch;
 
 	uint border;
-	Material topleft, top, topright, left, right, bottomleft, bottom, bottomright;
+	Pattern topleft, top, topright, left, right, bottomleft, bottom, bottomright;
 }
