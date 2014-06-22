@@ -261,15 +261,19 @@ class UIFrame : UIPane {
 		super(parent, attributes);
 
 		if(mfill !is null){
+			Vect fillsize = size-2*border;
+
+			//Load surface for pattern
 			Pixbuf pbuf = mfill;
 			if(fillstyle == FillStyle.Stretch)
-				pbuf = pbuf.scaleSimple(size.x,size.y,GdkInterpType.BILINEAR);
+				pbuf = pbuf.scaleSimple(fillsize.x,fillsize.y,GdkInterpType.BILINEAR);
 
-			auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth-border, pbuf.getHeight-border);
+			auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
 			auto ctx = Context.create(surface);
-			setSourcePixbuf(ctx, pbuf, border, border);
+			setSourcePixbuf(ctx, pbuf, 0, 0);
 			ctx.paint();
 
+			//Pattern
 			fill = Pattern.createForSurface(surface);
 
 			if(fillstyle == FillStyle.Tile)
@@ -284,8 +288,11 @@ class UIFrame : UIPane {
 
 
 	bool OnDraw(Context c, Widget w){
+		c.translate(border, border);
 		c.setSource(fill);
 		c.paint();
+
+		c.identityMatrix();
 
 		return true;
 	}
