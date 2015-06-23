@@ -63,7 +63,7 @@ class Node {
 	Vect position;
 	Vect size;
 
-	Node children[];
+	Node[] children;
 
 	Layout container;
 
@@ -127,7 +127,7 @@ class UIScene : Node {
 		//Forbid resize
 		window.setDefaultSize(size.x, size.y);
 		auto geom = GdkGeometry(size.x, size.y, size.x, size.y);
-		window.setGeometryHints(null, geom, GdkWindowHints.HINT_MIN_SIZE|GdkWindowHints.HINT_MAX_SIZE);
+		window.setGeometryHints(null, &geom, GdkWindowHints.MIN_SIZE|GdkWindowHints.MAX_SIZE);
 		window.overrideBackgroundColor(GtkStateFlags.NORMAL, new RGBA(0,0,0,1));
 		
 		window.add(container);
