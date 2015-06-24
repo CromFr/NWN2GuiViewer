@@ -1,3 +1,5 @@
+module nwnxml;
+
 //import std.stdio;
 import std.uni;
 
@@ -17,9 +19,9 @@ class NwnXml {
 			HEADER,
 		}
 
-		root = Node(null, "ROOT");
+		root = new Node(null, "ROOT");
 
-		Node* currentParent = &root;
+		Node* currentParent = root;
 		Node* currentNode = null;
 		auto readType = ReadType.NOTHING;
 		
@@ -200,7 +202,7 @@ class NwnXml {
 			import std.conv: to;
 			throw new ParseException(charLine, charCol, "Reached end of file while searching for "~readType.to!string);
 		}
-		if(currentParent != &root){
+		if(currentParent != root){
 			throw new ParseException(charLine, charCol, "Unclosed tag "~currentParent.tag);
 		}
 
@@ -237,7 +239,7 @@ class NwnXml {
 		}
 	}
 
-	Node root;
+	Node* root;
 private:
 	
 }
