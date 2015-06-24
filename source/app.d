@@ -49,7 +49,7 @@ int main(string[] args)
 	//=================================================== Create object tree
 	sw.reset();
 	sw.start();
-	Parse(xml.root, null);
+	BuildWidgets(xml.root, null);
 	sw.stop();
 	writeln("Loaded scene in ",sw.peek().to!("msecs",float)," ms");
 
@@ -60,33 +60,42 @@ int main(string[] args)
 	return 0;
 }
 
-void Parse(NwnXml.Node* elmt, Node parent, string sDecal=""){
+void BuildWidgets(NwnXml.Node* elmt, Node parent, string sDecal=""){
 	writeln(sDecal~elmt.tag);//, (("name" in elmt.tag.attr)? ":"~elmt.tag.attr["name"] : ""));
 
-	if(parent is null)
-		parent = UIScene.Get;
+	if(elmt.tag == "ROOT"){
+		foreach(e ; elmt.children){
+			if(e.tag == "UIScene")
+				parent = new UIScene(e.attr);
+		}
+		if(parent is null){
+			throw new Exception("UIScene not found in the root of the document");
+		}
 
-	switch(elmt.tag){
-		case "ROOT":
-			break;
-		case "UIScene": 
-			parent = new UIScene(elmt.attr); 
-			break;
-		case "UIPane": 
-			parent = new UIPane(parent, elmt.attr);
-			break;
-		case "UIFrame": 
-			parent = new UIFrame(parent, elmt.attr);
-			break;
+		foreach_reverse(e ; elmt.children){
+			if(e.tag != "UIScene")
+				BuildWidgets(e, parent,sDecal~"  ");
+		}
+	}
+	else{
+		switch(elmt.tag){
+			case "UIPane": 
+				parent = new UIPane(parent, elmt.attr);
+				break;
+			case "UIFrame": 
+				parent = new UIFrame(parent, elmt.attr);
+				break;
 
-		default: 
-			parent = new UIPane(parent, elmt.attr);
-			break;
+			default: 
+				parent = new UIPane(parent, elmt.attr);
+				break;
 
+		}
+
+		foreach_reverse(e ; elmt.children){
+			BuildWidgets(e, parent,sDecal~"  ");
+		}
 	}
 
-	foreach(e ; elmt.children){
-		Parse(e, parent,sDecal~"  ");
-	}
 
 }

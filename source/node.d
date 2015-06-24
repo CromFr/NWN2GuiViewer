@@ -89,7 +89,8 @@ class UIScene : Node {
 		string name;
 		Vect size;
 
-		foreach(key, value ; attributes.dup){
+		foreach(key ; attributes.byKey){
+			auto value = attributes[key];
 			switch(key){
 				case "name": 
 					name=value;
@@ -128,7 +129,23 @@ class UIScene : Node {
 		window.setDefaultSize(size.x, size.y);
 		auto geom = GdkGeometry(size.x, size.y, size.x, size.y);
 		window.setGeometryHints(null, &geom, GdkWindowHints.MIN_SIZE|GdkWindowHints.MAX_SIZE);
-		window.overrideBackgroundColor(GtkStateFlags.NORMAL, new RGBA(0,0,0,1));
+
+		//window background
+		auto pbuf = Resource.FindFileRes!Material("bg.tga");
+		auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
+		auto ctx = Context.create(surface);
+		setSourcePixbuf(ctx, pbuf, 0, 0);
+		ctx.paint();
+		
+		auto fill = Pattern.createForSurface(surface);
+		fill.setExtend(CairoExtend.REPEAT);
+		container.addOnDraw((Scoped!Context c, Widget w){
+			c.setSource(fill);
+			c.paint();
+
+			c.identityMatrix();
+			return false;
+		});
 		
 		window.add(container);
 
@@ -147,7 +164,8 @@ class UIPane : Node {
 		string name;
 		Vect pos, size;
 
-		foreach(key, value ; attributes.dup){
+		foreach(key ; attributes.byKey){
+			auto value = attributes[key];
 			switch(key){
 				case "name": 
 					name=value;
@@ -204,7 +222,8 @@ class UIFrame : UIPane {
 		Material mfill, mtopleft, mtop, mtopright, mleft, mright, mbottomleft, mbottom, mbottomright;
 
 
-		foreach(key, value ; attributes.dup){
+		foreach(key ; attributes.byKey){
+			auto value = attributes[key];
 			switch(key){
 				case "fillstyle":
 					switch(value){
@@ -254,6 +273,14 @@ class UIFrame : UIPane {
 					border = value.to!uint;
 					attributes.remove(key);
 					break;
+				case "width":
+					if(value=="")
+						attributes[key] = "PARENT_WIDTH";
+					break;
+				case "height":
+					if(value=="")
+						attributes[key] = "PARENT_HEIGHT";
+					break;
 				default: break;
 			}
 		}
@@ -282,25 +309,25 @@ class UIFrame : UIPane {
 				fill.setExtend(CairoExtend.NONE);
 		}
 
-		container.addOnDraw(&OnDraw);
+		container.addOnDraw((Scoped!Context c, Widget w){
+			c.translate(border, border);
+			c.setSource(fill);
+			c.paint();
+
+			c.identityMatrix();
+			return false;
+		});
 	}
 	
 
 
-	bool OnDraw(Context c, Widget w){
-		c.translate(border, border);
-		c.setSource(fill);
-		c.paint();
-
-		c.identityMatrix();
-
-		return true;
-	}
+	
 
 
 	enum FillStyle : string{
 		Stretch="stretch",
-		Tile="tile"
+		Tile="tile",
+		Center="center"
 	}
 
 	Pattern fill;
