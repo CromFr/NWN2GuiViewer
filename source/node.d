@@ -31,13 +31,17 @@ enum YMacro : string{
 	Center="ALIGN_CENTER"
 }
 enum WidthMacro : string{
-	Parent="PARENT_WIDTH"
+	Parent="PARENT_WIDTH",
+	Dynamic="DYNAMIC"
 }
 enum HeightMacro : string{
-	Parent="PARENT_HEIGHT"
+	Parent="PARENT_HEIGHT",
+	Dynamic="DYNAMIC"
 }
 
-
+//#######################################################################################
+//#######################################################################################
+//#######################################################################################
 class Node {
 	this(string name_, Node parent_, in Vect position_=Vect(0,0), in Vect size_=Vect(0,0)) {
 
@@ -51,6 +55,7 @@ class Node {
 		container.setSizeRequest(size.x, size.y);
 		container.setHscrollPolicy(GtkScrollablePolicy.MINIMUM);
 		container.setVscrollPolicy(GtkScrollablePolicy.MINIMUM);
+		container.setName(name);
 	
 		if(parent !is null){
 			parent.children ~= this;
@@ -79,6 +84,9 @@ class Node {
 }
 
 
+//#######################################################################################
+//#######################################################################################
+//#######################################################################################
 class UIScene : Node {
 	static Get(){
 		return m_inst;
@@ -159,6 +167,9 @@ class UIScene : Node {
 }
 
 
+//#######################################################################################
+//#######################################################################################
+//#######################################################################################
 class UIPane : Node {
 	this(Node parent, ref string[string] attributes){
 		string name;
@@ -174,6 +185,7 @@ class UIPane : Node {
 				case "width": 
 					switch(value){
 						case WidthMacro.Parent: size.x=parent.size.x; break;
+						case WidthMacro.Dynamic: writeln("Warning: Dynamic is not handled"); size.x=10; break;
 						default: size.x=value.to!int; break;
 					}
 					attributes.remove(key);
@@ -181,6 +193,7 @@ class UIPane : Node {
 				case "height": 
 					switch(value){
 						case HeightMacro.Parent: size.y=parent.size.y; break;
+						case HeightMacro.Dynamic: writeln("Warning: Dynamic is not handled"); size.y=10; break;
 						default: size.y=value.to!int; break;
 					}
 					attributes.remove(key);
@@ -217,6 +230,9 @@ class UIPane : Node {
 	}
 }
 
+//#######################################################################################
+//#######################################################################################
+//#######################################################################################
 class UIFrame : UIPane {
 	this(Node parent, ref string[string] attributes){
 		Material mfill;//, mtopleft, mtop, mtopright, mleft, mright, mbottomleft, mbottom, mbottomright;
@@ -394,4 +410,59 @@ private:
 			default: assert(0);
 		}
 	}
+}
+
+
+//#######################################################################################
+//#######################################################################################
+//#######################################################################################
+class UIIcon : UIPane {
+	this(Node parent, ref string[string] attributes){
+		Material mimg;
+
+		foreach(key ; attributes.byKey){
+			auto value = attributes[key];
+			switch(key){
+				case "img": 
+					mimg = Resource.FindFileRes!Material(value.toLower);
+					attributes.remove(key);
+					break;
+				default: break;
+			}
+		}
+
+		super(parent, attributes);
+
+		if(mimg !is null){
+
+			//Load surface for pattern
+			Pixbuf pbuf = mimg.scaleSimple(size.x,size.y,GdkInterpType.BILINEAR);
+
+			auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
+			auto ctx = Context.create(surface);
+			setSourcePixbuf(ctx, pbuf, 0, 0);
+			ctx.paint();
+
+			//Pattern
+			img = Pattern.createForSurface(surface);
+			img.setExtend(CairoExtend.NONE);
+		}
+
+
+
+		container.addOnDraw((Scoped!Context c, Widget w){
+			if(img !is null){
+				c.save;
+
+				c.setSource(img);
+				c.paintWithAlpha(1.0);//todo: handle alpha
+
+				c.restore;
+			}
+			c.identityMatrix();
+			return false;
+		});
+	}
+
+	Pattern img;
 }
