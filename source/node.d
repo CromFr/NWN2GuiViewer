@@ -273,17 +273,16 @@ class UIFrame : UIPane {
 					border = value.to!uint;
 					attributes.remove(key);
 					break;
-				case "width":
-					if(value=="")
-						attributes[key] = "PARENT_WIDTH";
-					break;
-				case "height":
-					if(value=="")
-						attributes[key] = "PARENT_HEIGHT";
-					break;
+				
 				default: break;
 			}
 		}
+
+		//UIframe specific
+		if("width" !in attributes)
+			attributes["width"] = "PARENT_WIDTH";
+		if("height" !in attributes)
+			attributes["height"] = "PARENT_HEIGHT";
 
 		super(parent, attributes);
 
