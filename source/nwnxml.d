@@ -200,6 +200,9 @@ class NwnXml {
 			import std.conv: to;
 			throw new ParseException(charLine, charCol, "Reached end of file while searching for "~readType.to!string);
 		}
+		if(currentParent != &root){
+			throw new ParseException(charLine, charCol, "Unclosed tag "~currentParent.tag);
+		}
 
 
 
@@ -249,7 +252,7 @@ unittest{
 	assertNotThrown!(NwnXml.ParseException)(new NwnXml("<a><b\n></b></a>"));
 	assertNotThrown!(NwnXml.ParseException)(new NwnXml("<a><b/><c></c></a>"));
 	assertThrown!(NwnXml.ParseException)(new NwnXml("<bug"));
-	//assertThrown!(NwnXml.ParseException)(new NwnXml("<buuug>"));
+	assertThrown!(NwnXml.ParseException)(new NwnXml("<buuug>"));
 	assertThrown!(NwnXml.ParseException)(new NwnXml("<a><bug></a>"));
 	assertThrown!(NwnXml.ParseException)(new NwnXml("<a></ab>"));
 	assertThrown!(NwnXml.ParseException)(new NwnXml("<a></b>"));
@@ -268,7 +271,7 @@ unittest{
 		assert(xml.root.children[0].attr["z"] == "yolo(\"qwerty\")");
 	}());
 	assertNotThrown!(NwnXml.ParseException)({
-		auto xml = new NwnXml(q"[<a x= yolo>]");
+		auto xml = new NwnXml(q"[<a x= yolo></a>]");
 		assert(xml.root.children[0].attr["x"] == "yolo");
 	}());
 	assertThrown!(NwnXml.ParseException)(new NwnXml(q"[<a bug =123></a>]"));
