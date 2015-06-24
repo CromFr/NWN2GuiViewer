@@ -1,4 +1,4 @@
-import std.stdio;
+//import std.stdio;
 import std.uni;
 
 class NwnXml {
@@ -78,7 +78,7 @@ class NwnXml {
 							}
 						}
 						else{
-							writeln("New tag: ",bufTagName);
+							//writeln("New tag: ",bufTagName);
 							currentNode = new Node(currentParent, bufTagName);
 
 							bufTagName = "";
@@ -107,7 +107,7 @@ class NwnXml {
 						readType = ReadType.NOTHING;
 						
 						if(bufIsSelfClosed || bufIsClosingTag){
-							writeln("end of tag ",currentNode.tag);
+							//writeln("end of tag ",currentNode.tag);
 							currentParent = currentNode.parent;
 							//Does not contain any children
 						}
@@ -162,7 +162,7 @@ class NwnXml {
 					else{
 						if((bufAttrDelimiter!='s' && c==bufAttrDelimiter) || (bufAttrDelimiter=='s' && (isWhite(c)||c=='>'||c=='/'))){
 							currentNode.attr[bufAttrName] = bufAttrValue;
-							writeln("   ",bufAttrName,"=",bufAttrValue," (",bufAttrDelimiter,")");
+							//writeln("   ",bufAttrName,"=",bufAttrValue," (",bufAttrDelimiter,")");
 
 							if(c=='>'||c=='/'){
 								readType = ReadType.TAGEND;
