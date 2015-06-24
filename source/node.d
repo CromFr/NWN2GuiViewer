@@ -219,8 +219,8 @@ class UIPane : Node {
 
 class UIFrame : UIPane {
 	this(Node parent, ref string[string] attributes){
-		Material mfill, mtopleft, mtop, mtopright, mleft, mright, mbottomleft, mbottom, mbottomright;
-
+		Material mfill;//, mtopleft, mtop, mtopright, mleft, mright, mbottomleft, mbottom, mbottomright;
+		Material[8] mborders;
 
 		foreach(key ; attributes.byKey){
 			auto value = attributes[key];
@@ -238,35 +238,35 @@ class UIFrame : UIPane {
 					attributes.remove(key);
 					break;
 				case "topleft": 
-					mtopleft = Resource.FindFileRes!Material(value.toLower);
+					mborders[0] = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "top": 
-					mtop = Resource.FindFileRes!Material(value.toLower);
+					mborders[1] = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "topright": 
-					mtopright = Resource.FindFileRes!Material(value.toLower);
+					mborders[2] = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "left": 
-					mleft = Resource.FindFileRes!Material(value.toLower);
+					mborders[3] = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "right": 
-					mright = Resource.FindFileRes!Material(value.toLower);
+					mborders[4] = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "bottomleft": 
-					mbottomleft = Resource.FindFileRes!Material(value.toLower);
+					mborders[5] = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "bottom": 
-					mbottom = Resource.FindFileRes!Material(value.toLower);
+					mborders[6] = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "bottomright": 
-					mbottomright = Resource.FindFileRes!Material(value.toLower);
+					mborders[7] = Resource.FindFileRes!Material(value.toLower);
 					attributes.remove(key);
 					break;
 				case "border": 
@@ -286,8 +286,8 @@ class UIFrame : UIPane {
 
 		super(parent, attributes);
 
+		fillsize = size-2*border;
 		if(mfill !is null){
-			Vect fillsize = size-2*border;
 
 			//Load surface for pattern
 			Pixbuf pbuf = mfill;
@@ -308,11 +308,51 @@ class UIFrame : UIPane {
 				fill.setExtend(CairoExtend.NONE);
 		}
 
-		container.addOnDraw((Scoped!Context c, Widget w){
-			c.translate(border, border);
-			c.setSource(fill);
-			c.paint();
+		foreach(index, ref mat ; mborders){
+			if(mat !is null){
+				auto bordergeom = GetBorderGeometry(index);
+				Pixbuf pbuf = mat.scaleSimple(bordergeom.width,bordergeom.height,GdkInterpType.BILINEAR);
+				auto surface = ImageSurface.create(CairoFormat.ARGB32, bordergeom.width, bordergeom.height);
+				auto ctx = Context.create(surface);
+				setSourcePixbuf(ctx, pbuf, 0, 0);
+				ctx.paint();
 
+				//Pattern
+				borders[index] = Pattern.createForSurface(surface);
+			}
+		}
+
+
+		container.addOnDraw((Scoped!Context c, Widget w){
+
+			foreach(index, ref pattern ; borders){
+				if(pattern !is null){
+					c.save;
+
+					auto bordergeom = GetBorderGeometry(index);
+					c.translate(bordergeom.x, bordergeom.y);
+					c.setSource(pattern);
+					c.rectangle(0, 0, bordergeom.width, bordergeom.height);
+					c.clip();
+					c.paintWithAlpha(1.0);//todo: handle alpha
+
+					c.restore;
+				}
+			}
+			
+
+			if(fill !is null){
+				c.save;
+
+				//todo: handle fillstyle=center here?
+				c.translate(border, border);
+				c.setSource(fill);
+				c.rectangle(0, 0, fillsize.x, fillsize.y);
+				c.clip();
+				c.paintWithAlpha(1.0);//todo: handle alpha
+
+				c.restore;
+			}
 			c.identityMatrix();
 			return false;
 		});
@@ -331,7 +371,27 @@ class UIFrame : UIPane {
 
 	Pattern fill;
 	FillStyle fillstyle = FillStyle.Stretch;
+	Vect fillsize;
 
 	uint border = 0;
-	Pattern topleft, top, topright, left, right, bottomleft, bottom, bottomright;
+	Pattern[8] borders;
+
+private:
+	auto GetBorderGeometry(size_t borderIndex){
+		import std.typecons: Tuple;
+		alias data = Tuple!(int,"x", int,"y", int,"width", int,"height");
+		switch(borderIndex){
+			case 0: return data(0,0,                          border,border);
+			case 1: return data(border,0,                     fillsize.x,border);
+			case 2: return data(size.x-border,0,              border,border);
+
+			case 3: return data(0,border,                     border,fillsize.y);
+			case 4: return data(size.x-border,border,         border,fillsize.y);
+
+			case 5: return data(0, size.y-border,             border,border);
+			case 6: return data(border, size.y-border,        fillsize.x,border);
+			case 7: return data(size.x-border,size.y-border,  border,border);
+			default: assert(0);
+		}
+	}
 }
