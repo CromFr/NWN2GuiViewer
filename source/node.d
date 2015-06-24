@@ -10,6 +10,7 @@ import gtk.Layout;
 import gtk.Image;
 import gdk.RGBA;
 import gdk.Cairo;
+import gdk.Event;
 import cairo.Context;
 import cairo.ImageSurface;
 import cairo.Pattern;
@@ -17,6 +18,7 @@ import gdk.Pixbuf;
 import cairo.Surface;
 import material;
 import resource;
+import nwnxml;
 
 public import vect;
 
@@ -67,6 +69,7 @@ class Node {
 	Node parent;
 	Vect position;
 	Vect size;
+	float opacity=1.0;
 
 	Node[] children;
 
@@ -198,6 +201,10 @@ class UIPane : Node {
 					}
 					attributes.remove(key);
 					break;
+				case "alpha": 
+					opacity = value.to!float;
+					attributes.remove(key);
+					break;
 
 				case "OnAdd": break;//TODO impl
 
@@ -302,6 +309,12 @@ class UIFrame : UIPane {
 
 		super(parent, attributes);
 
+		if(is(parent : UIButton)){
+			if("state" in attributes){
+				(cast(UIButton)parent).RegisterFrame(attributes["state"].to!(UIButton.State), this);
+			}
+		}
+
 		fillsize = size-2*border;
 		if(mfill !is null){
 
@@ -350,7 +363,7 @@ class UIFrame : UIPane {
 					c.setSource(pattern);
 					c.rectangle(0, 0, bordergeom.width, bordergeom.height);
 					c.clip();
-					c.paintWithAlpha(1.0);//todo: handle alpha
+					c.paintWithAlpha(opacity);
 
 					c.restore;
 				}
@@ -365,7 +378,7 @@ class UIFrame : UIPane {
 				c.setSource(fill);
 				c.rectangle(0, 0, fillsize.x, fillsize.y);
 				c.clip();
-				c.paintWithAlpha(1.0);//todo: handle alpha
+				c.paintWithAlpha(opacity);
 
 				c.restore;
 			}
@@ -455,7 +468,7 @@ class UIIcon : UIPane {
 				c.save;
 
 				c.setSource(img);
-				c.paintWithAlpha(1.0);//todo: handle alpha
+				c.paintWithAlpha(opacity);//todo: handle alpha
 
 				c.restore;
 			}
@@ -465,4 +478,142 @@ class UIIcon : UIPane {
 	}
 
 	Pattern img;
+}
+
+
+
+//#######################################################################################
+//#######################################################################################
+//#######################################################################################
+class UIButton : UIPane {
+	this(Node parent, ref string[string] attributes){
+		Material mimg;
+
+		if("style" in attributes){
+			auto stylesheet = Resource.FindFileRes!NwnXml("stylesheet.xml");
+			auto styleNode = stylesheet.FindFirstByName(stylesheet.root, attributes["style"]);
+			if(styleNode !is null){
+				//Merge with current attributes
+				foreach(key, value ; styleNode.attr){
+					if(key !in attributes){
+						//do not override current attributes with style attributes
+						attributes[key] = value;
+					}
+				}
+				//Add children (they will be overridden later when parsing inner UIFrames)
+				foreach(child ; styleNode.children){
+					if(child.tag == "UIFrame"){
+						new UIFrame(this, child.attr);
+					}
+					//else if(child.tag == "UIText"){
+					//	new UIText(this, child.attr);//TODO
+					//}
+				}
+			}
+			else
+				throw new Exception("Style "~attributes["style"]~" could not be found in stylesheet.xml");
+			attributes.remove("style");
+		}
+
+		foreach(key ; attributes.byKey){
+			auto value = attributes[key];
+			switch(key){
+				case "img": 
+					mimg = Resource.FindFileRes!Material(value.toLower);
+					attributes.remove(key);
+					break;
+				default: break;
+			}
+		}
+
+		super(parent, attributes);
+
+		if(mimg !is null){
+
+			//Load surface for pattern
+			Pixbuf pbuf = mimg.scaleSimple(size.x,size.y,GdkInterpType.BILINEAR);
+
+			auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
+			auto ctx = Context.create(surface);
+			setSourcePixbuf(ctx, pbuf, 0, 0);
+			ctx.paint();
+
+			//Pattern
+			img = Pattern.createForSurface(surface);
+			img.setExtend(CairoExtend.NONE);
+		}
+
+
+
+		container.addOnDraw((Scoped!Context c, Widget w){
+			if(img !is null){
+				c.save;
+
+				c.setSource(img);
+				c.paintWithAlpha(opacity);//todo: handle alpha
+
+				c.restore;
+			}
+			c.identityMatrix();
+			return false;
+		});
+
+		container.addOnButtonPress(delegate(Event e, Widget w){
+			foreach(state, ref node ; childrenFrames){
+				if(mouseover) node.container.setVisible(state==State.HIFOCUS || state==State.BASE);
+				else node.container.setVisible(state==State.DOWN || state==State.BASE);
+			}
+			return false;
+		});
+		container.addOnButtonRelease((Event e, Widget w){
+			foreach(state, ref node ; childrenFrames){
+				if(mouseover) node.container.setVisible(state==State.HILITED || state==State.BASE);
+				else node.container.setVisible(state==State.UP || state==State.BASE);
+			}
+			return false;
+		});
+		container.addOnEnterNotify((Event e, Widget w){
+			mouseover = true;
+			foreach(state, ref node ; childrenFrames){
+				node.container.setVisible(state==State.HILITED || state==State.BASE);
+			}
+			return false;
+		});
+		container.addOnLeaveNotify((Event e, Widget w){
+			mouseover = false;
+			foreach(state, ref node ; childrenFrames){
+				node.container.setVisible(state==State.UP || state==State.BASE);
+			}
+			return false;
+		});
+	}
+	public bool onButtonPress(Event event, Widget widget)
+	{
+		return false;
+	}
+
+	Pattern img;
+	bool mouseover = false;
+
+	enum State{
+		UP="up",
+		DOWN="down",
+		DISABLED="disabled",
+		FOCUSED="focused",
+		HILITED="hilited",
+		HIFOCUS="hifocus",
+		HEADER="header",
+		HIHEADER="hiheader",
+		DOWNHEADER="downheader",
+		BASE="base",
+	}
+	UIFrame*[State] childrenFrames;
+
+	void RegisterFrame(in State state, ref UIFrame frame){
+		if(state in childrenFrames)
+			childrenFrames[state].destroy();
+
+		childrenFrames[state] = &frame;
+		frame.container.setVisible(state==State.UP || state==State.BASE);
+	}
 }

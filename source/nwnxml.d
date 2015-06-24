@@ -2,8 +2,12 @@ module nwnxml;
 
 //import std.stdio;
 import std.uni;
+import std.file;
 
 class NwnXml {
+	this(in DirEntry file){
+		this(cast(string)std.file.read(file));
+	}
 	this(in string data) {
 
 		enum ReadType{
@@ -222,7 +226,6 @@ class NwnXml {
 	}
 
 
-
 	struct Node{
 		string tag;
 		string[string] attr;
@@ -239,8 +242,19 @@ class NwnXml {
 		}
 	}
 
+
+
+	Node* FindFirstByName(Node* from, in string name){
+		if("name" in from.attr && from.attr["name"]==name)
+			return from;
+		foreach(child ; from.children){
+			auto ret = FindFirstByName(child, name);
+			if(ret !is null)return ret;
+		}
+		return null;
+	}
+
 	Node* root;
-private:
 	
 }
 
