@@ -2,6 +2,7 @@ module resource;
 import std.file : DirEntry, dirEntries, SpanMode;
 import std.path;
 import std.string : chompPrefix;
+import std.experimental.logger;
 
 class ResourceException : Exception{
 	this(in string msg){super(msg);}
@@ -100,7 +101,7 @@ void LoadFromFiles(T, VT...)(in string directory, in string filePatern, in bool 
 			foreach(p ; path){
 				foreach(ref file ; dirEntries(p, SpanMode.depth)){
 					if(file.isFile && filenameCmp!(CaseSensitive.no)(file.name.baseName, fileName)==0){
-						std.stdio.writeln("Loaded ",fileName," from ",file.name);
+						info("Loaded ",fileName," from ",file.name);
 						return CreateRes!T(fileName, file);
 					}
 				}

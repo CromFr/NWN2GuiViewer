@@ -5,10 +5,14 @@ import std.path;
 import std.string;
 import core.thread;
 import std.datetime : StopWatch;
+import std.experimental.logger;
 
 import gtk.Main;
 import gtk.MainWindow;
-import gtkc.gdktypes;
+import gtk.VBox;
+import gtk.MenuBar;
+import gtk.TextView;
+import gtk.ScrolledWindow;
 import gio.File;
 import gio.FileMonitor;
 
@@ -17,7 +21,33 @@ import resource;
 import node;
 
 MainWindow window;
+VBox vbox;
 FileMonitor mon;
+TextView console;
+
+class NWNLogger : Logger
+{
+    this() @safe
+    {
+        super(LogLevel.all);
+    }
+
+    override void writeLogMsg(ref LogEntry log) @trusted
+    {
+        writeln("\x1b[2m",log.timestamp,": \x1b[m",log.msg);
+
+        string msg = log.msg;
+    	switch(log.logLevel){
+    		with(LogLevel){
+    			case info:    msg=`Info: `~msg; break;
+    			case warning: msg=`WARNING: `~msg; break;
+    			case critical:msg=`=> ERROR: `~msg; break;
+    			default: assert(0);
+    		}
+    	}
+		console.appendText("\n"~msg);
+    }
+}
 
 int main(string[] args)
 {
@@ -38,6 +68,25 @@ int main(string[] args)
 
 	window = new MainWindow("");
 	window.setIconFromFile("res/icon.ico");
+	sharedLog = new NWNLogger;//sharedLog is a global var defining the default logger
+
+	auto menubar = new MenuBar();
+	auto menu = menubar.append("Move console");
+
+	auto consoleWrap = new ScrolledWindow(PolicyType.NEVER, PolicyType.ALWAYS);
+	consoleWrap.setMinContentHeight(100);
+	console = new TextView;
+	console.setEditable(false);
+	console.setCursorVisible(false);
+	console.setLeftMargin(5);
+	console.setWrapMode(WrapMode.WORD);
+	consoleWrap.add(console);
+
+
+	vbox = new VBox(false, 0);
+	vbox.packStart(menubar, false, true, 0);
+	vbox.packEnd(consoleWrap, true, true, 0);
+	window.add(vbox);
 
 	auto res = BuildFromXmlFile(file);
 	if(!res)return 1;
@@ -58,11 +107,11 @@ bool BuildFromXmlFile(in string file){
 		xml = new NwnXml(cast(string)std.file.read(file));
 	}
 	catch(NwnXml.ParseException e){
-		writeln("Ill-formed XML:\n",e.toString);
+		critical("Ill-formed XML:\n",e.toString);
 		return false;
 	}
 	sw.stop();
-	writeln("Checked xml in ",sw.peek().to!("msecs",float)," ms");
+	info("Parsed xml in ",sw.peek().to!("msecs",float)," ms");
 	
 
 	//=================================================== Create object tree
@@ -70,7 +119,7 @@ bool BuildFromXmlFile(in string file){
 	sw.start();
 	BuildWidgets(xml.root, null);
 	sw.stop();
-	writeln("Loaded scene in ",sw.peek().to!("msecs",float)," ms");
+	info("Loaded scene in ",sw.peek().to!("msecs",float)," ms");
 
 	if(mon !is null)mon.destroy;
 
@@ -79,8 +128,9 @@ bool BuildFromXmlFile(in string file){
 	mon.addOnChanged((oldFile, newFile, e, mon){
 		if(e == FileMonitorEvent.CHANGES_DONE_HINT)
 		if(UIScene.Get !is null){
-			window.removeAll();
+			UIScene.Get.container.destroy;
 			UIScene.Get.destroy;
+			console.getBuffer.setText("");
 
 			if(newFile !is null)
 				BuildFromXmlFile(newFile.getPath);
@@ -98,7 +148,7 @@ void BuildWidgets(NwnXml.Node* elmt, Node parent, string sDecal=""){
 	if(elmt.tag == "ROOT"){
 		foreach(e ; elmt.children){
 			if(e.tag == "UIScene")
-				parent = new UIScene(window, e.attr);
+				parent = new UIScene(window, vbox, e.attr);
 		}
 		if(parent is null){
 			throw new Exception("UIScene not found in the root of the document");
@@ -124,7 +174,8 @@ void BuildWidgets(NwnXml.Node* elmt, Node parent, string sDecal=""){
 				parent = new UIButton(parent, elmt.attr);
 				break;
 
-			default: 
+			default:
+				warning(elmt.tag, " is not handled by the program. Treated as a UIPane");
 				parent = new UIPane(parent, elmt.attr);
 				break;
 

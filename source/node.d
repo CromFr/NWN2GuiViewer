@@ -4,10 +4,12 @@ import std.stdio;
 import std.conv : to;
 import std.traits;
 import std.string : toLower, toUpper;
+import std.experimental.logger;
 import gtk.MainWindow;
 import gtk.Widget;
 import gtk.Layout;
 import gtk.Image;
+import gtk.VBox;
 import gdk.RGBA;
 import gdk.Cairo;
 import gdk.Event;
@@ -96,7 +98,7 @@ class UIScene : Node {
 	}
 
 
-	this(MainWindow window, ref string[string] attributes){
+	this(MainWindow window, VBox innercont, ref string[string] attributes){
 		string name;
 		Vect size;
 
@@ -136,8 +138,8 @@ class UIScene : Node {
 
 		//Forbid resize
 		window.setDefaultSize(size.x, size.y);
-		auto geom = GdkGeometry(size.x, size.y, size.x, size.y);
-		window.setGeometryHints(null, &geom, GdkWindowHints.MIN_SIZE|GdkWindowHints.MAX_SIZE);
+		//auto geom = GdkGeometry(size.x, size.y, size.x, size.y);
+		//window.setGeometryHints(null, &geom, GdkWindowHints.MIN_SIZE|GdkWindowHints.MAX_SIZE);
 
 		//window background
 		auto pbuf = Resource.FindFileRes!Material("bg.tga");
@@ -156,7 +158,7 @@ class UIScene : Node {
 			return false;
 		});
 		
-		window.add(container);
+		innercont.packStart(container, false, false, 0);
 
 		//Register instance
 		m_inst = this;
@@ -184,7 +186,7 @@ class UIPane : Node {
 				case "width": 
 					switch(value){
 						case WidthMacro.Parent: size.x=parent.size.x; break;
-						case WidthMacro.Dynamic: writeln("Warning: Dynamic is not handled"); size.x=10; break;
+						case WidthMacro.Dynamic: warning("Dynamic is not handled"); size.x=10; break;
 						default: size.x=value.to!int; break;
 					}
 					attributes.remove(key);
@@ -192,7 +194,7 @@ class UIPane : Node {
 				case "height": 
 					switch(value){
 						case HeightMacro.Parent: size.y=parent.size.y; break;
-						case HeightMacro.Dynamic: writeln("Warning: Dynamic is not handled"); size.y=10; break;
+						case HeightMacro.Dynamic: warning("Dynamic is not handled"); size.y=10; break;
 						default: size.y=value.to!int; break;
 					}
 					attributes.remove(key);
