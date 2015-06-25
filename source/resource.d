@@ -1,5 +1,5 @@
 module resource;
-import std.file : DirEntry, dirEntries, SpanMode;
+import std.file;
 import std.path;
 import std.string : chompPrefix;
 import std.experimental.logger;
@@ -82,7 +82,7 @@ static:
 			recursive = true to search in subfolders
 			ctorArgs = Arguments passed to the resource constructor
 	*/
-void LoadFromFiles(T, VT...)(in string directory, in string filePatern, in bool recursive, VT ctorArgs){
+	void LoadFromFiles(T, VT...)(in string directory, in string filePatern, in bool recursive, VT ctorArgs){
 		import std.path : dirSeparator;
 		
 		foreach(ref file ; dirEntries(directory, filePatern, recursive?SpanMode.depth:SpanMode.shallow)){
@@ -99,10 +99,12 @@ void LoadFromFiles(T, VT...)(in string directory, in string filePatern, in bool 
 		try return Get!T(fileName);
 		catch(ResourceException e){
 			foreach(p ; path){
-				foreach(ref file ; dirEntries(p, SpanMode.depth)){
-					if(file.isFile && filenameCmp!(CaseSensitive.no)(file.name.baseName, fileName)==0){
-						info("Loaded ",fileName," from ",file.name);
-						return CreateRes!T(fileName, file);
+				if(p.exists && p.isDir){
+					foreach(ref file ; dirEntries(p, SpanMode.depth)){
+						if(file.isFile && filenameCmp!(CaseSensitive.no)(file.name.baseName, fileName)==0){
+							info("Loaded ",fileName," from ",file.name);
+							return CreateRes!T(fileName, file);
+						}
 					}
 				}
 			}
@@ -110,7 +112,19 @@ void LoadFromFiles(T, VT...)(in string directory, in string filePatern, in bool 
 			throw new ResourceException("Resource '"~fileName~"' not found in path");
 		}
 	}
-	__gshared DirEntry[] path;
+	string FindFilePath(in string fileName){
+		foreach(p ; path){
+			if(p.exists && p.isDir){
+				foreach(ref file ; dirEntries(p, SpanMode.depth)){
+					if(file.isFile && filenameCmp!(CaseSensitive.no)(file.name.baseName, fileName)==0){
+						return file;
+					}
+				}
+			}
+		}
+		return null;
+	}
+	__gshared string[] path;
 
 
 

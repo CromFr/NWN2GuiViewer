@@ -36,16 +36,18 @@ class NWNLogger : Logger
     {
         writeln("\x1b[2m",log.timestamp,": \x1b[m",log.msg);
 
-        string msg = log.msg;
-    	switch(log.logLevel){
-    		with(LogLevel){
-    			case info:    msg=`Info: `~msg; break;
-    			case warning: msg=`WARNING: `~msg; break;
-    			case critical:msg=`=> ERROR: `~msg; break;
-    			default: assert(0);
-    		}
-    	}
-		console.appendText("\n"~msg);
+        if(window!is null && console!is null){
+	        string msg = log.msg;
+	    	switch(log.logLevel){
+	    		with(LogLevel){
+	    			case info:    msg=`Info: `~msg; break;
+	    			case warning: msg=`WARNING: `~msg; break;
+	    			case critical:msg=`=> ERROR: `~msg; break;
+	    			default: assert(0);
+	    		}
+	    	}
+			console.appendText("\n"~msg);
+        }
     }
 }
 
@@ -54,18 +56,23 @@ int main(string[] args)
 	Main.init(args);//init GTK
 
     //Handle command-line args
-    string file;
+    string file, respath;
     bool checkOnly;
 	getopt(args,
 		    "f|file",  &file,
-		    "c|check", &checkOnly);
+		    "c|check", &checkOnly,
+		    "p|respath",  &respath);
 
+	sharedLog = new NWNLogger;//sharedLog is a global var defining the default logger
 
 	//Use last arg as file path
-	if(file=="" && args.length==2)
+	if(file=="")
 		file = args[$-1];
 
-	Resource.path ~= DirEntry("/home/crom/GitProjects/NWNGuiViewer/res");
+	if(respath !is null){
+		Resource.path ~= respath.split(pathSeparator);
+	}
+	Resource.path ~= "res";
 
 	if(checkOnly){
 		new NwnXml(cast(string)std.file.read(file));
@@ -73,9 +80,7 @@ int main(string[] args)
 	}
 
 	window = new MainWindow("");
-	window.setIconFromFile("res/icon.ico");
-	sharedLog = new NWNLogger;//sharedLog is a global var defining the default logger
-
+	
 	auto menubar = new MenuBar();
 	auto menu = menubar.append("Move console");
 
@@ -88,11 +93,14 @@ int main(string[] args)
 	console.setWrapMode(WrapMode.WORD);
 	consoleWrap.add(console);
 
-
 	vbox = new VBox(false, 0);
 	vbox.packStart(menubar, false, true, 0);
 	vbox.packEnd(consoleWrap, true, true, 0);
 	window.add(vbox);
+
+	string ico = Resource.FindFilePath("nwn2guiviewer.ico");
+	if(ico !is null) window.setIconFromFile(ico);
+	else warning("Icon file nwn2guiviewer.ico could not be found in path");
 
 	BuildFromXmlFile(file);
 	window.showAll();
