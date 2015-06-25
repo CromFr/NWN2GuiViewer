@@ -306,7 +306,6 @@ class UIFrame : UIPane {
 		super(parent, attributes);
 
 		if(cast(UIButton)parent !is null && "state" in attributes){
-			writeln("Registered ",attributes["fill"], " as fill for state ",attributes["state"].toUpper.to!(UIButton.State));
 			(cast(UIButton)parent)
 				.RegisterFrame(attributes["state"].toUpper.to!(UIButton.State), this);
 		}
@@ -510,7 +509,7 @@ class UIButton : UIPane {
 					}
 				}
 				//Add children (they will be overridden later when parsing inner UIFrames)
-				foreach(child ; styleNode.children){
+				foreach_reverse(child ; styleNode.children){
 					if(child.tag == "UIFrame"){
 						new UIFrame(this, child.attr);
 					}
@@ -547,10 +546,17 @@ class UIButton : UIPane {
 			return false;
 		});
 		container.addOnLeaveNotify((Event e, Widget w){
-			mouseover = false;
-			foreach(state, node ; childrenFrames){
-				node.container.setVisible(state==State.UP || state==State.BASE);
+			//Be sure that the mouse is out
+			// Because the event is also received on mouse click released
+			double x, y;
+			e.getCoords(x, y);
+			if(!(0<=x && x<size.x && 0<=y && y<size.y)){
+				mouseover = false;
+				foreach(state, node ; childrenFrames){
+					node.container.setVisible(state==State.UP || state==State.BASE);
+				}
 			}
+			
 			return false;
 		});
 	}
