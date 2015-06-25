@@ -55,8 +55,10 @@ int main(string[] args)
 
     //Handle command-line args
     string file;
+    bool checkOnly;
 	getopt(args,
-		    "f|file",  &file);
+		    "f|file",  &file,
+		    "c|check", &checkOnly);
 
 
 	//Use last arg as file path
@@ -65,6 +67,10 @@ int main(string[] args)
 
 	Resource.path ~= DirEntry("/home/crom/GitProjects/NWNGuiViewer/res");
 
+	if(checkOnly){
+		new NwnXml(cast(string)std.file.read(file));
+		return 0;
+	}
 
 	window = new MainWindow("");
 	window.setIconFromFile("res/icon.ico");
@@ -88,16 +94,21 @@ int main(string[] args)
 	vbox.packEnd(consoleWrap, true, true, 0);
 	window.add(vbox);
 
-	auto res = BuildFromXmlFile(file);
-	if(!res)return 1;
-
+	BuildFromXmlFile(file);
+	window.showAll();
 	Main.run();
 	return 0;
 }
 
-bool BuildFromXmlFile(in string file){
-	if(!exists(file))throw new Exception("File "~file~" does not exist");
-	if(!isFile(file))throw new Exception("File "~file~" is not a file");
+void BuildFromXmlFile(in string file){
+	if(!exists(file)){
+		critical("File "~file~" does not exist");
+		return;
+	}
+	if(!isFile(file)){
+		critical("File "~file~" is not a file");
+		return;
+	}
 
 	StopWatch sw;
 
@@ -107,8 +118,12 @@ bool BuildFromXmlFile(in string file){
 		xml = new NwnXml(cast(string)std.file.read(file));
 	}
 	catch(NwnXml.ParseException e){
-		critical("Ill-formed XML:\n",e.toString);
-		return false;
+		critical("Ill-formed XML: ",e.msg);
+		return;
+	}
+	catch(Exception e){
+		critical("Could not parse XML: ",e.msg);
+		return;
 	}
 	sw.stop();
 	info("Parsed xml in ",sw.peek().to!("msecs",float)," ms");
@@ -117,7 +132,13 @@ bool BuildFromXmlFile(in string file){
 	//=================================================== Create object tree
 	sw.reset();
 	sw.start();
-	BuildWidgets(xml.root, null);
+	try{
+		BuildWidgets(xml.root, null);
+	}
+	catch(Exception e){
+		critical("Could not load GUI: ",e.msg);
+		return;
+	}
 	sw.stop();
 	info("Loaded scene in ",sw.peek().to!("msecs",float)," ms");
 
@@ -140,7 +161,6 @@ bool BuildFromXmlFile(in string file){
 	});
 
 	window.showAll();
-	return true;
 }
 
 void BuildWidgets(NwnXml.Node* elmt, Node parent, string sDecal=""){
