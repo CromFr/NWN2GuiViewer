@@ -1,16 +1,23 @@
 import std.stdio;
 import std.getopt;
 import std.file;
+import std.path;
 import std.string;
 import core.thread;
 import std.datetime : StopWatch;
 
 import gtk.Main;
+import gtk.MainWindow;
 import gtkc.gdktypes;
+import gio.File;
+import gio.FileMonitor;
 
 import nwnxml;
 import resource;
 import node;
+
+MainWindow window;
+FileMonitor mon;
 
 int main(string[] args)
 {
@@ -29,10 +36,22 @@ int main(string[] args)
 	Resource.path ~= DirEntry("/home/crom/GitProjects/NWNGuiViewer/res");
 
 
+	window = new MainWindow("");
+	window.setIconFromFile("res/icon.ico");
+
+	auto res = BuildFromXmlFile(file);
+	if(!res)return 1;
+
+	Main.run();
+	return 0;
+}
+
+bool BuildFromXmlFile(in string file){
 	if(!exists(file))throw new Exception("File "~file~" does not exist");
 	if(!isFile(file))throw new Exception("File "~file~" is not a file");
 
 	StopWatch sw;
+
 	NwnXml xml;
 	sw.start();
 	try{
@@ -40,7 +59,7 @@ int main(string[] args)
 	}
 	catch(NwnXml.ParseException e){
 		writeln("Ill-formed XML:\n",e.toString);
-		return 1;
+		return false;
 	}
 	sw.stop();
 	writeln("Checked xml in ",sw.peek().to!("msecs",float)," ms");
@@ -53,20 +72,33 @@ int main(string[] args)
 	sw.stop();
 	writeln("Loaded scene in ",sw.peek().to!("msecs",float)," ms");
 
+	if(mon !is null)mon.destroy;
 
-	//=================================================== Create window
-	UIScene.Get.window.showAll();
-	Main.run();
-	return 0;
+	mon = gio.File.File.parseName(absolutePath(file))
+		.monitorFile(FileMonitorFlags.NONE, null);
+	mon.addOnChanged((oldFile, newFile, e, mon){
+		if(e == FileMonitorEvent.CHANGES_DONE_HINT)
+		if(UIScene.Get !is null){
+			window.removeAll();
+			UIScene.Get.destroy;
+
+			if(newFile !is null)
+				BuildFromXmlFile(newFile.getPath);
+			else
+				BuildFromXmlFile(oldFile.getPath);
+		}
+	});
+
+	window.showAll();
+	return true;
 }
 
 void BuildWidgets(NwnXml.Node* elmt, Node parent, string sDecal=""){
-	writeln(sDecal~elmt.tag);//, (("name" in elmt.tag.attr)? ":"~elmt.tag.attr["name"] : ""));
-
+	
 	if(elmt.tag == "ROOT"){
 		foreach(e ; elmt.children){
 			if(e.tag == "UIScene")
-				parent = new UIScene(e.attr);
+				parent = new UIScene(window, e.attr);
 		}
 		if(parent is null){
 			throw new Exception("UIScene not found in the root of the document");

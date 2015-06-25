@@ -96,7 +96,7 @@ class UIScene : Node {
 	}
 
 
-	this(ref string[string] attributes){
+	this(MainWindow window, ref string[string] attributes){
 		string name;
 		Vect size;
 
@@ -132,9 +132,7 @@ class UIScene : Node {
 
 		super(name, null, Vect(0,0), size);
 
-		//Create window
-		window = new MainWindow(name);
-		window.setIconFromFile("res/icon.ico");
+		window.setTitle(name);
 
 		//Forbid resize
 		window.setDefaultSize(size.x, size.y);
@@ -163,8 +161,6 @@ class UIScene : Node {
 		//Register instance
 		m_inst = this;
 	}
-
-	MainWindow window;
 
 	private __gshared UIScene m_inst;
 }
