@@ -120,6 +120,9 @@ void BuildWidgets(NwnXml.Node* elmt, Node parent, string sDecal=""){
 			case "UIIcon":
 				parent = new UIIcon(parent, elmt.attr);
 				break;
+			case "UIButton":
+				parent = new UIButton(parent, elmt.attr);
+				break;
 
 			default: 
 				parent = new UIPane(parent, elmt.attr);

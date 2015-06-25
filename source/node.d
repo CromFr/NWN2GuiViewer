@@ -3,7 +3,7 @@ module node;
 import std.stdio;
 import std.conv : to;
 import std.traits;
-import std.string : toLower;
+import std.string : toLower, toUpper;
 import gtk.MainWindow;
 import gtk.Widget;
 import gtk.Layout;
@@ -254,7 +254,7 @@ class UIFrame : UIPane {
 					break;
 				case "fill": 
 					mfill = Resource.FindFileRes!Material(value.toLower);
-					attributes.remove(key);
+					//attributes.remove(key);
 					break;
 				case "topleft": 
 					mborders[0] = Resource.FindFileRes!Material(value.toLower);
@@ -305,10 +305,10 @@ class UIFrame : UIPane {
 
 		super(parent, attributes);
 
-		if(is(parent : UIButton)){
-			if("state" in attributes){
-				(cast(UIButton)parent).RegisterFrame(attributes["state"].to!(UIButton.State), this);
-			}
+		if(cast(UIButton)parent !is null && "state" in attributes){
+			writeln("Registered ",attributes["fill"], " as fill for state ",attributes["state"].toUpper.to!(UIButton.State));
+			(cast(UIButton)parent)
+				.RegisterFrame(attributes["state"].toUpper.to!(UIButton.State), this);
 		}
 
 		fillsize = size-2*border;
@@ -483,7 +483,20 @@ class UIIcon : UIPane {
 //#######################################################################################
 class UIButton : UIPane {
 	this(Node parent, ref string[string] attributes){
-		Material mimg;
+
+		foreach(key ; attributes.byKey){
+			auto value = attributes[key];
+			switch(key){
+				//case "img": 
+				//	mimg = Resource.FindFileRes!Material(value.toLower);
+				//	attributes.remove(key);
+				//	break;
+				default: break;
+			}
+		}
+
+		super(parent, attributes);
+
 
 		if("style" in attributes){
 			auto stylesheet = Resource.FindFileRes!NwnXml("stylesheet.xml");
@@ -511,58 +524,16 @@ class UIButton : UIPane {
 			attributes.remove("style");
 		}
 
-		foreach(key ; attributes.byKey){
-			auto value = attributes[key];
-			switch(key){
-				case "img": 
-					mimg = Resource.FindFileRes!Material(value.toLower);
-					attributes.remove(key);
-					break;
-				default: break;
-			}
-		}
-
-		super(parent, attributes);
-
-		if(mimg !is null){
-
-			//Load surface for pattern
-			Pixbuf pbuf = mimg.scaleSimple(size.x,size.y,GdkInterpType.BILINEAR);
-
-			auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
-			auto ctx = Context.create(surface);
-			setSourcePixbuf(ctx, pbuf, 0, 0);
-			ctx.paint();
-
-			//Pattern
-			img = Pattern.createForSurface(surface);
-			img.setExtend(CairoExtend.NONE);
-		}
-
-
-
-		container.addOnDraw((Scoped!Context c, Widget w){
-			if(img !is null){
-				c.save;
-
-				c.setSource(img);
-				c.paintWithAlpha(opacity);//todo: handle alpha
-
-				c.restore;
-			}
-			c.identityMatrix();
-			return false;
-		});
 
 		container.addOnButtonPress(delegate(Event e, Widget w){
-			foreach(state, ref node ; childrenFrames){
+			foreach(state, node ; childrenFrames){
 				if(mouseover) node.container.setVisible(state==State.HIFOCUS || state==State.BASE);
 				else node.container.setVisible(state==State.DOWN || state==State.BASE);
 			}
 			return false;
 		});
 		container.addOnButtonRelease((Event e, Widget w){
-			foreach(state, ref node ; childrenFrames){
+			foreach(state, node ; childrenFrames){
 				if(mouseover) node.container.setVisible(state==State.HILITED || state==State.BASE);
 				else node.container.setVisible(state==State.UP || state==State.BASE);
 			}
@@ -570,46 +541,42 @@ class UIButton : UIPane {
 		});
 		container.addOnEnterNotify((Event e, Widget w){
 			mouseover = true;
-			foreach(state, ref node ; childrenFrames){
+			foreach(state, node ; childrenFrames){
 				node.container.setVisible(state==State.HILITED || state==State.BASE);
 			}
 			return false;
 		});
 		container.addOnLeaveNotify((Event e, Widget w){
 			mouseover = false;
-			foreach(state, ref node ; childrenFrames){
+			foreach(state, node ; childrenFrames){
 				node.container.setVisible(state==State.UP || state==State.BASE);
 			}
 			return false;
 		});
-	}
-	public bool onButtonPress(Event event, Widget widget)
-	{
-		return false;
 	}
 
 	Pattern img;
 	bool mouseover = false;
 
 	enum State{
-		UP="up",
-		DOWN="down",
-		DISABLED="disabled",
-		FOCUSED="focused",
-		HILITED="hilited",
-		HIFOCUS="hifocus",
-		HEADER="header",
-		HIHEADER="hiheader",
-		DOWNHEADER="downheader",
-		BASE="base",
+		UP,
+		DOWN,
+		DISABLED,
+		FOCUSED,
+		HILITED,
+		HIFOCUS,
+		HEADER,
+		HIHEADER,
+		DOWNHEADER,
+		BASE,
 	}
-	UIFrame*[State] childrenFrames;
+	UIFrame[State] childrenFrames;
 
-	void RegisterFrame(in State state, ref UIFrame frame){
+	void RegisterFrame(in State state, UIFrame frame){
 		if(state in childrenFrames)
 			childrenFrames[state].destroy();
 
-		childrenFrames[state] = &frame;
+		childrenFrames[state] = frame;
 		frame.container.setVisible(state==State.UP || state==State.BASE);
 	}
 }
