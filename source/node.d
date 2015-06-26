@@ -680,7 +680,7 @@ class UIText : UIPane {
 
 				case "strref":
 					if(text=="")
-						text = "STRREF";
+						text = "{strref}";
 					warning("strref is not handled yet");
 					attributes.remove(key);
 					break;
@@ -695,7 +695,7 @@ class UIText : UIPane {
 
 		super(parent, attributes);
 
-		auto lbl = new Label("yolooooo");
+		auto lbl = new Label(text);
 		lbl.setLineWrap(multiline);
 		if(multiline) lbl.setLineWrapMode(PangoWrapMode.WORD);
 		lbl.setLines(multiline? lines : 1);
@@ -703,16 +703,14 @@ class UIText : UIPane {
 		lbl.setValign(valign);
 		lbl.overrideColor(StateFlags.NORMAL, color);
 
-		//gtk fonts seems to be 2x larger that nwn2. Could be fixed by using nwn2 fonts.
 		//See modifyFont (new PgFontDescription(PgFontDescription.fromString(family ~ " " ~ size)));
-		lbl.modifyFont("", fontsize/2);
+		lbl.modifyFont("", fontsize);
 
 		if(uppercase)
 			lbl.setText(lbl.getText.toUpper);
 
 
 		lbl.setSizeRequest(size.x, size.y);
-		lbl.show();
 		container.add(lbl);
 
 		//Register to button
