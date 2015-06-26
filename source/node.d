@@ -489,10 +489,10 @@ class UIButton : UIPane {
 		foreach(key ; attributes.byKey){
 			auto value = attributes[key];
 			switch(key){
-				//case "img": 
-				//	mimg = Resource.FindFileRes!Material(value.toLower);
-				//	attributes.remove(key);
-				//	break;
+				case "text": 
+					defaultText = value;
+					attributes.remove(key);
+					break;
 				default: break;
 			}
 		}
@@ -506,7 +506,7 @@ class UIButton : UIPane {
 			if(styleNode !is null){
 				//Merge with current attributes
 				foreach(key, value ; styleNode.attr){
-					if(key !in attributes){
+					if(key !in attributes && key!="name"){
 						//do not override current attributes with style attributes
 						attributes[key] = value;
 					}
@@ -516,14 +516,25 @@ class UIButton : UIPane {
 					if(child.tag == "UIFrame"){
 						new UIFrame(this, child.attr);
 					}
-					//else if(child.tag == "UIText"){
-					//	new UIText(this, child.attr);//TODO
-					//}
+					else if(child.tag == "UIText"){
+						child.attr["text"] = defaultText;
+						new UIText(this, child.attr);
+					}
 				}
 			}
 			else
 				throw new Exception("Style "~attributes["style"]~" could not be found in stylesheet.xml");
 			attributes.remove("style");
+		}
+
+		if(childText is null && defaultText!is null){
+			//Create default UIText
+			auto attr = [
+				"align": "center",
+				"valign": "middle",
+				"text": defaultText,
+			];
+			new UIText(this, attr);
 		}
 
 
@@ -580,6 +591,8 @@ class UIButton : UIPane {
 		BASE,
 	}
 	UIFrame[State] childrenFrames;
+	UIText childText;
+	string defaultText;
 
 	void RegisterFrame(in State state, UIFrame frame){
 		if(state in childrenFrames)
@@ -587,6 +600,12 @@ class UIButton : UIPane {
 
 		childrenFrames[state] = frame;
 		frame.container.setVisible(state==State.UP || state==State.BASE);
+	}
+	void RegisterText(UIText text){
+		if(childText !is null)
+			childText.destroy();
+
+		childText = text;
 	}
 }
 
@@ -678,7 +697,7 @@ class UIText : UIPane {
 
 		super(parent, attributes);
 
-		auto lbl = new Label(text);
+		auto lbl = new Label("yolooooo");
 		lbl.setLineWrap(multiline);
 		if(multiline) lbl.setLineWrapMode(PangoWrapMode.WORD);
 		lbl.setLines(multiline? lines : 1);
@@ -695,9 +714,13 @@ class UIText : UIPane {
 
 
 		lbl.setSizeRequest(size.x, size.y);
+		lbl.show();
 		container.add(lbl);
 
-		
+		//Register to button
+		if(cast(UIButton)parent !is null){
+			(cast(UIButton)parent).RegisterText(this);
+		}
 	}
 
 
