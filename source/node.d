@@ -1,7 +1,7 @@
 module node;
 
 import std.stdio;
-import std.conv : to, parse;
+import std.conv : to, parse, ConvException;
 import std.traits;
 import std.string : toLower, toUpper;
 import std.experimental.logger;
@@ -26,22 +26,25 @@ import nwnxml;
 public import vect;
 
 enum XMacro : string{
-	Right="ALIGN_RIGHT",
-	Left="ALIGN_LEFT",
-	Center="ALIGN_CENTER"
+	RIGHT="ALIGN_RIGHT",
+	LEFT="ALIGN_LEFT",
+	CENTER="ALIGN_CENTER"
 }
 enum YMacro : string{
-	Top="ALIGN_TOP",
-	Bottom="ALIGN_BOTTOM",
-	Center="ALIGN_CENTER"
+	TOP="ALIGN_TOP",
+	BOTTOM="ALIGN_BOTTOM",
+	CENTER="ALIGN_CENTER"
 }
 enum WidthMacro : string{
-	Parent="PARENT_WIDTH",
-	Dynamic="DYNAMIC"
+	PARENT="PARENT_WIDTH",
+	DYNAMIC="DYNAMIC",
+	SCREEN="SCREEN_WIDTH"
+
 }
 enum HeightMacro : string{
-	Parent="PARENT_HEIGHT",
-	Dynamic="DYNAMIC"
+	PARENT="PARENT_HEIGHT",
+	DYNAMIC="DYNAMIC",
+	SCREEN="SCREEN_HEIGHT"
 }
 
 //#######################################################################################
@@ -101,11 +104,21 @@ class UIScene : Node {
 					attributes.remove(key);
 					break;
 				case "width":
-					size.x=value.to!int;
+					switch(value){
+						case WidthMacro.SCREEN: size.x=1024; break;
+						default:
+							try size.x=value.to!int;
+							catch(ConvException) throw new Exception("width='"~value~"' is not valid. Possible values are: integer, 'SCREEN_WIDTH'");
+					}
 					attributes.remove(key);
 					break;
 				case "height":
-					size.y=value.to!int;
+					switch(value){
+						case HeightMacro.SCREEN: size.y=768; break;
+						default:
+							try size.y=value.to!int;
+							catch(ConvException) throw new Exception("height='"~value~"' is not valid. Possible values are: integer, 'SCREEN_HEIGHT'");
+					}
 					attributes.remove(key);
 					break;
 				case "OnAdd": 
@@ -176,16 +189,16 @@ class UIPane : Node {
 					break;
 				case "width": 
 					switch(value){
-						case WidthMacro.Parent: size.x=parent.size.x; break;
-						case WidthMacro.Dynamic: warning("Dynamic is not handled"); size.x=10; break;
+						case WidthMacro.PARENT: size.x=parent.size.x; break;
+						case WidthMacro.DYNAMIC: warning("width=DYNAMIC is not supported yet"); size.x=10; break;
 						default: size.x=value.to!int; break;
 					}
 					attributes.remove(key);
 					break;
 				case "height": 
 					switch(value){
-						case HeightMacro.Parent: size.y=parent.size.y; break;
-						case HeightMacro.Dynamic: warning("Dynamic is not handled"); size.y=10; break;
+						case HeightMacro.PARENT: size.y=parent.size.y; break;
+						case HeightMacro.DYNAMIC: warning("height=DYNAMIC is not supported yet"); size.y=10; break;
 						default: size.y=value.to!int; break;
 					}
 					attributes.remove(key);
@@ -205,18 +218,18 @@ class UIPane : Node {
 
 		if("x" in attributes){
 			switch(attributes["x"]){
-				case XMacro.Left: pos.x=0; break;
-				case XMacro.Right: pos.x=parent.size.x-size.x; break;
-				case XMacro.Center: pos.x=parent.size.x/2-size.x/2; break;
+				case XMacro.LEFT: pos.x=0; break;
+				case XMacro.RIGHT: pos.x=parent.size.x-size.x; break;
+				case XMacro.CENTER: pos.x=parent.size.x/2-size.x/2; break;
 				default: pos.x=attributes["x"].to!int; break;
 			}
 			attributes.remove("x");
 		}
 		if("y" in attributes){
 			switch(attributes["y"]){
-				case YMacro.Top: pos.y=0; break;
-				case YMacro.Bottom: pos.y=parent.size.y-size.y; break;
-				case YMacro.Center: pos.y=parent.size.y/2-size.y/2; break;
+				case YMacro.TOP: pos.y=0; break;
+				case YMacro.BOTTOM: pos.y=parent.size.y-size.y; break;
+				case YMacro.CENTER: pos.y=parent.size.y/2-size.y/2; break;
 				default: pos.y=attributes["y"].to!int; break;
 			}
 			attributes.remove("y");
@@ -238,10 +251,9 @@ class UIFrame : UIPane {
 			auto value = attributes[key];
 			switch(key){
 				case "fillstyle":
-					switch(value){
-						case FillStyle.Stretch: fillstyle=FillStyle.Stretch; break;
-						case FillStyle.Tile: fillstyle=FillStyle.Tile; break;
-						default: throw new Exception("Unknown fillstyle "~value);
+					try fillstyle = value.toUpper.to!FillStyle;
+					catch(ConvException e){
+						throw new Exception("Unknown fillstyle '"~value~"'");
 					}
 					attributes.remove(key);
 					break;
@@ -308,7 +320,7 @@ class UIFrame : UIPane {
 
 			//Load surface for pattern
 			Pixbuf pbuf = mfill;
-			if(fillstyle == FillStyle.Stretch)
+			if(fillstyle == FillStyle.STRETCH)
 				pbuf = pbuf.scaleSimple(fillsize.x,fillsize.y,GdkInterpType.BILINEAR);
 
 			auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
@@ -319,7 +331,7 @@ class UIFrame : UIPane {
 			//Pattern
 			fill = Pattern.createForSurface(surface);
 
-			if(fillstyle == FillStyle.Tile)
+			if(fillstyle == FillStyle.TILE)
 				fill.setExtend(CairoExtend.REPEAT);
 			else
 				fill.setExtend(CairoExtend.NONE);
@@ -381,13 +393,13 @@ class UIFrame : UIPane {
 
 
 	enum FillStyle : string{
-		Stretch="stretch",
-		Tile="tile",
-		Center="center"
+		STRETCH="stretch",
+		TILE="tile",
+		CENTER="center"
 	}
 
 	Pattern fill;
-	FillStyle fillstyle = FillStyle.Stretch;
+	FillStyle fillstyle = FillStyle.STRETCH;
 	Vect fillsize;
 
 	uint border = 0;
@@ -629,7 +641,7 @@ class UIText : UIPane {
 			auto value = attributes[key];
 			switch(key){
 				case "editable":
-					warning("UITexts: editable is not supported yet");
+					warning("editable is not supported yet");
 					editable = value.to!bool;
 					attributes.remove(key);
 					break;
@@ -638,7 +650,7 @@ class UIText : UIPane {
 						case "left": halign = Align.START; break;
 						case "center": halign = Align.CENTER; break;
 						case "right": halign = Align.END; break;
-						default: throw new Exception("Unknown align='"~value~"'. Possible values are 'left', 'center', 'right'");
+						default: throw new Exception("align='"~value~"' is not valid. Possible values are: 'left', 'center', 'right'");
 					}
 					attributes.remove(key);
 					break;
@@ -647,7 +659,7 @@ class UIText : UIPane {
 						case "top": valign = Align.START; break;
 						case "middle": valign = Align.CENTER; break;
 						case "bottom": valign = Align.END; break;
-						default: throw new Exception("Unknown valign='"~value~"'. Possible values are 'top', 'middle', 'bottom'");
+						default: throw new Exception("valign='"~value~"' is not valid. Possible values are: 'top', 'middle', 'bottom'");
 					}
 					attributes.remove(key);
 					break;
