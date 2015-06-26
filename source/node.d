@@ -518,6 +518,8 @@ class UIButton : UIPane {
 					}
 					else if(child.tag == "UIText"){
 						child.attr["text"] = defaultText;
+						child.attr["width"] = "PARENT_WIDTH";
+						child.attr["height"] = "PARENT_HEIGHT";
 						new UIText(this, child.attr);
 					}
 				}
@@ -533,6 +535,8 @@ class UIButton : UIPane {
 				"align": "center",
 				"valign": "middle",
 				"text": defaultText,
+				"width": "PARENT_WIDTH",
+				"height": "PARENT_HEIGHT"
 			];
 			new UIText(this, attr);
 		}
@@ -595,15 +599,19 @@ class UIButton : UIPane {
 	string defaultText;
 
 	void RegisterFrame(in State state, UIFrame frame){
-		if(state in childrenFrames)
+		if(state in childrenFrames){
+			childrenFrames[state].container.destroy();
 			childrenFrames[state].destroy();
+		}
 
 		childrenFrames[state] = frame;
 		frame.container.setVisible(state==State.UP || state==State.BASE);
 	}
 	void RegisterText(UIText text){
-		if(childText !is null)
+		if(childText !is null){
+			childText.container.destroy();
 			childText.destroy();
+		}
 
 		childText = text;
 	}
