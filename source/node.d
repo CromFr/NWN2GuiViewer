@@ -1,7 +1,7 @@
 module node;
 
 import std.stdio;
-import std.conv : to;
+import std.conv : to, parse;
 import std.traits;
 import std.string : toLower, toUpper;
 import std.experimental.logger;
@@ -10,6 +10,7 @@ import gtk.Widget;
 import gtk.Layout;
 import gtk.Image;
 import gtk.VBox;
+import gtk.Label;
 import gdk.RGBA;
 import gdk.Cairo;
 import gdk.Event;
@@ -587,4 +588,118 @@ class UIButton : UIPane {
 		childrenFrames[state] = frame;
 		frame.container.setVisible(state==State.UP || state==State.BASE);
 	}
+}
+
+
+//#######################################################################################
+//#######################################################################################
+//#######################################################################################
+class UIText : UIPane {
+	this(Node parent, ref string[string] attributes){
+
+		bool editable = false;
+		bool multiline = false;
+		int lines = 1;
+		auto halign = Align.START;
+		auto valign = Align.START;
+		uppercase = false;
+		string text = "";
+		auto color = new RGBA(1,1,1);
+		uint fontsize = 14;
+
+
+		foreach(key ; attributes.byKey){
+			auto value = attributes[key];
+			switch(key){
+				case "editable":
+					warning("UITexts: editable is not supported yet");
+					editable = value.to!bool;
+					attributes.remove(key);
+					break;
+				case "align":
+					switch(value){
+						case "left": halign = Align.START; break;
+						case "center": halign = Align.CENTER; break;
+						case "right": halign = Align.END; break;
+						default: throw new Exception("Unknown align='"~value~"'. Possible values are 'left', 'center', 'right'");
+					}
+					attributes.remove(key);
+					break;
+				case "valign":
+					switch(value){
+						case "top": valign = Align.START; break;
+						case "middle": valign = Align.CENTER; break;
+						case "bottom": valign = Align.END; break;
+						default: throw new Exception("Unknown valign='"~value~"'. Possible values are 'top', 'middle', 'bottom'");
+					}
+					attributes.remove(key);
+					break;
+				case "multiline":
+					multiline = value.to!bool;
+					attributes.remove(key);
+					break;
+				case "maxlines":
+					lines = value.to!int;
+					attributes.remove(key);
+					break;
+				case "uppercase":
+					uppercase = value.to!bool;
+					attributes.remove(key);
+					break;
+				case "color":
+					uint colorvalue = parse!int(value, 16);
+					color = new RGBA(
+						((colorvalue&0xFF0000)>>16)/255.0,
+						((colorvalue&0x00FF00)>>8)/255.0,
+						((colorvalue&0x0000FF))/255.0
+					);
+					attributes.remove(key);
+					break;
+				case "pointsize":
+					fontsize = value.to!uint;
+					attributes.remove(key);
+					break;
+
+
+				case "strref":
+					if(text=="")
+						text = "STRREF";
+					warning("strref is not handled yet");
+					attributes.remove(key);
+					break;
+				case "text":
+					text = value;
+					attributes.remove(key);
+					break;
+
+				default: break;
+			}
+		}
+
+		super(parent, attributes);
+
+		auto lbl = new Label(text);
+		lbl.setLineWrap(multiline);
+		if(multiline) lbl.setLineWrapMode(PangoWrapMode.WORD);
+		lbl.setLines(multiline? lines : 1);
+		lbl.setHalign(halign);
+		lbl.setValign(valign);
+		lbl.overrideColor(StateFlags.NORMAL, color);
+
+		//gtk fonts seems to be 2x larger that nwn2. Could be fixed by using nwn2 fonts.
+		//See modifyFont (new PgFontDescription(PgFontDescription.fromString(family ~ " " ~ size)));
+		lbl.modifyFont("", fontsize/2);
+
+		if(uppercase)
+			lbl.setText(lbl.getText.toUpper);
+
+
+		lbl.setSizeRequest(size.x, size.y);
+		container.add(lbl);
+
+		
+	}
+
+
+	bool uppercase;
 }

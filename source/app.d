@@ -201,6 +201,9 @@ void BuildWidgets(NwnXml.Node* elmt, Node parent, string sDecal=""){
 			case "UIButton":
 				parent = new UIButton(parent, elmt.attr);
 				break;
+			case "UIText":
+				parent = new UIText(parent, elmt.attr);
+				break;
 
 			default:
 				warning(elmt.tag, " is not handled by the program. Treated as a UIPane");
