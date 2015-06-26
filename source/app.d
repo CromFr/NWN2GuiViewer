@@ -74,6 +74,10 @@ int main(string[] args)
 	}
 	Resource.path ~= "res";
 
+	foreach(p ; Resource.path){
+		if(!p.exists)warning("Path \"",p,"\" does not exist");
+	}
+
 	if(checkOnly){
 		new NwnXml(cast(string)std.file.read(file));
 		return 0;
@@ -91,11 +95,12 @@ int main(string[] args)
 	console.setCursorVisible(false);
 	console.setLeftMargin(5);
 	console.setWrapMode(WrapMode.WORD);
+	console.setWrapMode(WrapMode.WORD_CHAR);
 	consoleWrap.add(console);
 
 	vbox = new VBox(false, 0);
 	vbox.packStart(menubar, false, true, 0);
-	vbox.packEnd(consoleWrap, true, true, 0);
+	vbox.packEnd(consoleWrap, true, true, 5);
 	window.add(vbox);
 
 	string ico = Resource.FindFilePath("nwn2guiviewer.ico");
