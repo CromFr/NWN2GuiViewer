@@ -741,7 +741,7 @@ class UIText : UIPane {
 		lbl.overrideColor(StateFlags.NORMAL, color);
 
 		//See modifyFont (new PgFontDescription(PgFontDescription.fromString(family ~ " " ~ size)));
-		lbl.modifyFont("", fontsize);
+		lbl.modifyFont("", cast(int)(fontsize*0.7));
 
 		if(uppercase)
 			lbl.setText(lbl.getText.toUpper);
