@@ -130,7 +130,7 @@ void BuildFromXmlFile(in string file){
 	try{
 		xml = new NwnXml(cast(string)std.file.read(file));
 	}
-	catch(NwnXml.ParseException e){
+	catch(ParseException e){
 		critical("Ill-formed XML: ",e.msg);
 		return;
 	}
@@ -175,49 +175,68 @@ void BuildFromXmlFile(in string file){
 
 	window.showAll();
 }
-
-void BuildWidgets(NwnXml.Node* elmt, Node parent, string sDecal=""){
+class BuildException : Exception {
+	@safe pure nothrow this(NwnXmlNode* node, in string msg,
+			string excFile =__FILE__,
+			size_t excLine = __LINE__,
+			Throwable excNext = null) {
+		import std.conv : to;
+		super(node.line.to!string~":"~node.column.to!string~"| <"~node.tag~">: "~msg, excFile, excLine, excNext);
+	}
+}
+void BuildWidgets(NwnXmlNode* xmlNode, Node parent, string sDecal=""){
 	
-	if(elmt.tag == "ROOT"){
-		foreach(e ; elmt.children){
-			if(e.tag == "UIScene")
-				parent = new UIScene(window, vbox, e.attr);
+	if(xmlNode.tag == "ROOT"){
+		foreach(node ; xmlNode.children){
+			if(node.tag == "UIScene"){
+				try{
+					parent = new UIScene(window, vbox, node.attr);
+				}
+				catch(Exception e){
+					throw new BuildException(node, e.msg);
+				}
+			}
 		}
 		if(parent is null){
 			throw new Exception("UIScene not found in the root of the document");
 		}
 
-		foreach_reverse(e ; elmt.children){
+		foreach_reverse(e ; xmlNode.children){
 			if(e.tag != "UIScene")
 				BuildWidgets(e, parent,sDecal~"  ");
 		}
 	}
 	else{
-		switch(elmt.tag){
-			case "UIPane": 
-				parent = new UIPane(parent, elmt.attr);
-				break;
-			case "UIFrame": 
-				parent = new UIFrame(parent, elmt.attr);
-				break;
-			case "UIIcon":
-				parent = new UIIcon(parent, elmt.attr);
-				break;
-			case "UIButton":
-				parent = new UIButton(parent, elmt.attr);
-				break;
-			case "UIText":
-				parent = new UIText(parent, elmt.attr);
-				break;
+		try{
+			switch(xmlNode.tag){
+				case "UIPane": 
+					parent = new UIPane(parent, xmlNode.attr);
+					break;
+				case "UIFrame": 
+					parent = new UIFrame(parent, xmlNode.attr);
+					break;
+				case "UIIcon":
+					parent = new UIIcon(parent, xmlNode.attr);
+					break;
+				case "UIButton":
+					parent = new UIButton(parent, xmlNode.attr);
+					break;
+				case "UIText":
+					parent = new UIText(parent, xmlNode.attr);
+					break;
 
-			default:
-				warning(elmt.tag, " is not handled by the program. Treated as a UIPane");
-				parent = new UIPane(parent, elmt.attr);
-				break;
+				default:
+					warning(xmlNode.tag, " is not handled by the program. Treated as a UIPane");
+					parent = new UIPane(parent, xmlNode.attr);
+					break;
 
+			}
+		}
+		catch(Exception e){
+			throw new BuildException(xmlNode, e.msg);
 		}
 
-		foreach_reverse(e ; elmt.children){
+		foreach_reverse(e ; xmlNode.children){
 			BuildWidgets(e, parent,sDecal~"  ");
 		}
 	}

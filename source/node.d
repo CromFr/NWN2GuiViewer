@@ -48,13 +48,13 @@ enum HeightMacro : string{
 //#######################################################################################
 //#######################################################################################
 class Node {
-	this(string name_, Node parent_, in Vect position_=Vect(0,0), in Vect size_=Vect(0,0)) {
+	this(string _name, Node _parent, in Vect _position, in Vect _size) {
 
-		name = name_;
-		position = position_;
-		size = size_;
+		name = _name;
+		position = _position;
+		size = _size;
 
-		parent = parent_;
+		parent = _parent;
 
 		container = new Layout(null, null);
 		container.setSizeRequest(size.x, size.y);
@@ -77,16 +77,6 @@ class Node {
 	Node[] children;
 
 	Layout container;
-
-	@property Vect absposition(){
-		Vect ret = Vect(0,0);
-		Node p = this;
-		while(p !is null){
-			ret+=p.position;
-			p = parent;
-		}
-		return ret;
-	}
 }
 
 
