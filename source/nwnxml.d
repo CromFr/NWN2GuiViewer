@@ -6,7 +6,7 @@ import std.file;
 
 class NwnXml {
 	this(in DirEntry file){
-		this(cast(string)std.file.read(file));
+		this(cast(string)std.file.readText(file));
 	}
 	this(in string data) {
 
@@ -30,12 +30,12 @@ class NwnXml {
 		auto readType = ReadType.NOTHING;
 		
 		string bufTagName, bufAttrName, bufAttrValue, bufComment;
-		dchar bufAttrDelimiter;
+		char bufAttrDelimiter;
 		bool bufIsClosingTag, bufIsSelfClosed;
 
 		size_t charLine=1, charCol=1;
 
-		foreach(dchar c ; data){
+		foreach(char c ; data){
 
 			if(c == '\n'){
 				charLine++;
