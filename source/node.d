@@ -182,37 +182,42 @@ class UIPane : Node {
 
 		foreach(key ; attributes.byKey){
 			auto value = attributes[key];
-			switch(key){
-				case "name": 
-					name=value;
-					attributes.remove(key);
-					break;
-				case "width": 
-					switch(value){
-						case WidthMacro.PARENT: size.x=parent.size.x; break;
-						case WidthMacro.DYNAMIC: warning("width=DYNAMIC is not supported yet"); size.x=10; break;
-						default: size.x=value.to!int; break;
-					}
-					attributes.remove(key);
-					break;
-				case "height": 
-					switch(value){
-						case HeightMacro.PARENT: size.y=parent.size.y; break;
-						case HeightMacro.DYNAMIC: warning("height=DYNAMIC is not supported yet"); size.y=10; break;
-						default: size.y=value.to!int; break;
-					}
-					attributes.remove(key);
-					break;
-				case "alpha": 
-					opacity = value.to!float;
-					attributes.remove(key);
-					break;
+			try{
+				switch(key){
+					case "name": 
+						name=value;
+						attributes.remove(key);
+						break;
+					case "width": 
+						switch(value){
+							case WidthMacro.PARENT: size.x=parent.size.x; break;
+							case WidthMacro.DYNAMIC: warning("width=DYNAMIC is not supported yet"); size.x=10; break;
+							default: size.x=value.to!int; break;
+						}
+						attributes.remove(key);
+						break;
+					case "height": 
+						switch(value){
+							case HeightMacro.PARENT: size.y=parent.size.y; break;
+							case HeightMacro.DYNAMIC: warning("height=DYNAMIC is not supported yet"); size.y=10; break;
+							default: size.y=value.to!int; break;
+						}
+						attributes.remove(key);
+						break;
+					case "alpha": 
+						opacity = value.to!float;
+						attributes.remove(key);
+						break;
 
-				case "OnAdd": break;//TODO impl
+					case "OnAdd": break;//TODO impl
 
-				case "draggable","fadein","fadeout","scriptloadable","priority","backoutkey": break;//Ignored attr
+					case "draggable","fadein","fadeout","scriptloadable","priority","backoutkey": break;//Ignored attr
 
-				default: break;
+					default: break;
+				}
+			}
+			catch(ResourceException e){
+				warning(e.msg);
 			}
 		}
 
@@ -249,56 +254,61 @@ class UIFrame : UIPane {
 
 		foreach(key ; attributes.byKey){
 			auto value = attributes[key];
-			switch(key){
-				case "fillstyle":
-					try fillstyle = value.toUpper.to!FillStyle;
-					catch(ConvException e){
-						throw new Exception("Unknown fillstyle '"~value~"'");
-					}
-					attributes.remove(key);
-					break;
-				case "fill": 
-					mfill = Resource.FindFileRes!Material(value.toLower);
-					//attributes.remove(key);
-					break;
-				case "topleft": 
-					mborders[0] = Resource.FindFileRes!Material(value.toLower);
-					attributes.remove(key);
-					break;
-				case "top": 
-					mborders[1] = Resource.FindFileRes!Material(value.toLower);
-					attributes.remove(key);
-					break;
-				case "topright": 
-					mborders[2] = Resource.FindFileRes!Material(value.toLower);
-					attributes.remove(key);
-					break;
-				case "left": 
-					mborders[3] = Resource.FindFileRes!Material(value.toLower);
-					attributes.remove(key);
-					break;
-				case "right": 
-					mborders[4] = Resource.FindFileRes!Material(value.toLower);
-					attributes.remove(key);
-					break;
-				case "bottomleft": 
-					mborders[5] = Resource.FindFileRes!Material(value.toLower);
-					attributes.remove(key);
-					break;
-				case "bottom": 
-					mborders[6] = Resource.FindFileRes!Material(value.toLower);
-					attributes.remove(key);
-					break;
-				case "bottomright": 
-					mborders[7] = Resource.FindFileRes!Material(value.toLower);
-					attributes.remove(key);
-					break;
-				case "border": 
-					border = value.to!uint;
-					attributes.remove(key);
-					break;
-				
-				default: break;
+			try{
+				switch(key){
+					case "fillstyle":
+						try fillstyle = value.toUpper.to!FillStyle;
+						catch(ConvException e){
+							throw new Exception("Unknown fillstyle '"~value~"'");
+						}
+						attributes.remove(key);
+						break;
+					case "fill": 
+						mfill = Resource.FindFileRes!Material(value.toLower);
+						//attributes.remove(key);
+						break;
+					case "topleft": 
+						mborders[0] = Resource.FindFileRes!Material(value.toLower);
+						attributes.remove(key);
+						break;
+					case "top": 
+						mborders[1] = Resource.FindFileRes!Material(value.toLower);
+						attributes.remove(key);
+						break;
+					case "topright": 
+						mborders[2] = Resource.FindFileRes!Material(value.toLower);
+						attributes.remove(key);
+						break;
+					case "left": 
+						mborders[3] = Resource.FindFileRes!Material(value.toLower);
+						attributes.remove(key);
+						break;
+					case "right": 
+						mborders[4] = Resource.FindFileRes!Material(value.toLower);
+						attributes.remove(key);
+						break;
+					case "bottomleft": 
+						mborders[5] = Resource.FindFileRes!Material(value.toLower);
+						attributes.remove(key);
+						break;
+					case "bottom": 
+						mborders[6] = Resource.FindFileRes!Material(value.toLower);
+						attributes.remove(key);
+						break;
+					case "bottomright": 
+						mborders[7] = Resource.FindFileRes!Material(value.toLower);
+						attributes.remove(key);
+						break;
+					case "border": 
+						border = value.to!uint;
+						attributes.remove(key);
+						break;
+					
+					default: break;
+				}
+			}
+			catch(ResourceException e){
+				warning(e.msg);
 			}
 		}
 
@@ -435,12 +445,17 @@ class UIIcon : UIPane {
 
 		foreach(key ; attributes.byKey){
 			auto value = attributes[key];
-			switch(key){
-				case "img": 
-					mimg = Resource.FindFileRes!Material(value.toLower);
-					attributes.remove(key);
-					break;
-				default: break;
+			try{
+				switch(key){
+					case "img": 
+						mimg = Resource.FindFileRes!Material(value.toLower);
+						attributes.remove(key);
+						break;
+					default: break;
+				}
+			}
+			catch(ResourceException e){
+				warning(e.msg);
 			}
 		}
 
@@ -490,12 +505,17 @@ class UIButton : UIPane {
 
 		foreach(key ; attributes.byKey){
 			auto value = attributes[key];
-			switch(key){
-				case "text": 
-					defaultText = value;
-					attributes.remove(key);
-					break;
-				default: break;
+			try{
+				switch(key){
+					case "text": 
+						defaultText = value;
+						attributes.remove(key);
+						break;
+					default: break;
+				}
+			}
+			catch(ResourceException e){
+				warning(e.msg);
 			}
 		}
 
@@ -639,69 +659,74 @@ class UIText : UIPane {
 
 		foreach(key ; attributes.byKey){
 			auto value = attributes[key];
-			switch(key){
-				case "editable":
-					warning("editable is not supported yet");
-					editable = value.to!bool;
-					attributes.remove(key);
-					break;
-				case "align":
-					switch(value){
-						case "left": halign = Align.START; break;
-						case "center": halign = Align.CENTER; break;
-						case "right": halign = Align.END; break;
-						default: throw new Exception("align='"~value~"' is not valid. Possible values are: 'left', 'center', 'right'");
-					}
-					attributes.remove(key);
-					break;
-				case "valign":
-					switch(value){
-						case "top": valign = Align.START; break;
-						case "middle": valign = Align.CENTER; break;
-						case "bottom": valign = Align.END; break;
-						default: throw new Exception("valign='"~value~"' is not valid. Possible values are: 'top', 'middle', 'bottom'");
-					}
-					attributes.remove(key);
-					break;
-				case "multiline":
-					multiline = value.to!bool;
-					attributes.remove(key);
-					break;
-				case "maxlines":
-					lines = value.to!int;
-					attributes.remove(key);
-					break;
-				case "uppercase":
-					uppercase = value.to!bool;
-					attributes.remove(key);
-					break;
-				case "color":
-					uint colorvalue = parse!int(value, 16);
-					color = new RGBA(
-						((colorvalue&0xFF0000)>>16)/255.0,
-						((colorvalue&0x00FF00)>>8)/255.0,
-						((colorvalue&0x0000FF))/255.0
-					);
-					attributes.remove(key);
-					break;
-				case "pointsize":
-					fontsize = value.to!uint;
-					attributes.remove(key);
-					break;
+			try{
+				switch(key){
+					case "editable":
+						warning("editable is not supported yet");
+						editable = value.to!bool;
+						attributes.remove(key);
+						break;
+					case "align":
+						switch(value){
+							case "left": halign = Align.START; break;
+							case "center": halign = Align.CENTER; break;
+							case "right": halign = Align.END; break;
+							default: throw new Exception("align='"~value~"' is not valid. Possible values are: 'left', 'center', 'right'");
+						}
+						attributes.remove(key);
+						break;
+					case "valign":
+						switch(value){
+							case "top": valign = Align.START; break;
+							case "middle": valign = Align.CENTER; break;
+							case "bottom": valign = Align.END; break;
+							default: throw new Exception("valign='"~value~"' is not valid. Possible values are: 'top', 'middle', 'bottom'");
+						}
+						attributes.remove(key);
+						break;
+					case "multiline":
+						multiline = value.to!bool;
+						attributes.remove(key);
+						break;
+					case "maxlines":
+						lines = value.to!int;
+						attributes.remove(key);
+						break;
+					case "uppercase":
+						uppercase = value.to!bool;
+						attributes.remove(key);
+						break;
+					case "color":
+						uint colorvalue = parse!int(value, 16);
+						color = new RGBA(
+							((colorvalue&0xFF0000)>>16)/255.0,
+							((colorvalue&0x00FF00)>>8)/255.0,
+							((colorvalue&0x0000FF))/255.0
+						);
+						attributes.remove(key);
+						break;
+					case "pointsize":
+						fontsize = value.to!uint;
+						attributes.remove(key);
+						break;
 
 
-				case "strref":
-					if(text=="")
-						text = "{strref}";
-					warning("strref is not handled yet");
-					attributes.remove(key);
-					break;
-				case "text":
-					text = value;
-					attributes.remove(key);
-					break;
+					case "strref":
+						if(text=="")
+							text = "{strref}";
+						warning("strref is not handled yet");
+						attributes.remove(key);
+						break;
+					case "text":
+						text = value;
+						attributes.remove(key);
+						break;
 
-				default: break;
+					default: break;
+				}
+			}
+			catch(ResourceException e){
+				warning(e.msg);
 			}
 		}
 
