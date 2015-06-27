@@ -88,14 +88,13 @@ int main(string[] args)
 	auto menubar = new MenuBar();
 	auto menu = menubar.append("Move console");
 
-	auto consoleWrap = new ScrolledWindow(PolicyType.NEVER, PolicyType.ALWAYS);
+	auto consoleWrap = new ScrolledWindow(PolicyType.EXTERNAL, PolicyType.ALWAYS);
 	consoleWrap.setMinContentHeight(100);
 	console = new TextView;
 	console.setEditable(false);
 	console.setCursorVisible(false);
 	console.setLeftMargin(5);
-	console.setWrapMode(WrapMode.WORD);
-	console.setWrapMode(WrapMode.WORD_CHAR);
+	console.setWrapMode(WrapMode.NONE);
 	consoleWrap.add(console);
 
 	vbox = new VBox(false, 0);

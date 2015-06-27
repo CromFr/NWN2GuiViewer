@@ -102,7 +102,7 @@ static:
 				if(p.exists && p.isDir){
 					foreach(ref file ; dirEntries(p, SpanMode.depth)){
 						if(file.isFile && filenameCmp!(CaseSensitive.no)(file.name.baseName, fileName)==0){
-							info("Loaded ",fileName," from ",file.name);
+							//info("Loaded ",fileName," from ",file.name);
 							return CreateRes!T(fileName, file);
 						}
 					}
