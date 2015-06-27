@@ -124,19 +124,16 @@ void BuildFromXmlFile(in string file){
 
 	StopWatch sw;
 
+	//=================================================== Parse XML
 	NwnXml xml;
 	sw.start();
 	try{
-	}
-	catch(ParseException e){
-		critical("Ill-formed XML: ",e.msg);
-		return;
+		xml = new NwnXml(DirEntry(file));
 	}
 	catch(Exception e){
-		critical("Could not parse XML: ",e.msg);
+		critical("Parse XML error @",e.toString);
 		return;
 	}
-		xml = new NwnXml(DirEntry(file));
 	sw.stop();
 	info("Parsed xml in ",sw.peek().to!("msecs",float)," ms");
 	
@@ -148,7 +145,7 @@ void BuildFromXmlFile(in string file){
 		BuildWidgets(xml.root, null);
 	}
 	catch(Exception e){
-		critical("Could not load GUI: ",e.msg);
+		critical("GUI load error @",e.toString);
 		return;
 	}
 	sw.stop();
@@ -175,13 +172,38 @@ void BuildFromXmlFile(in string file){
 	window.showAll();
 }
 class BuildException : Exception {
-	@safe pure nothrow this(NwnXmlNode* node, in string msg,
+	import std.conv : to;
+
+	@safe pure nothrow this(NwnXmlNode* xmlNode, in string msg,
 			string excFile =__FILE__,
 			size_t excLine = __LINE__,
 			Throwable excNext = null) {
-		import std.conv : to;
-		super(node.line.to!string~":"~node.column.to!string~"| <"~node.tag~">: "~msg, excFile, excLine, excNext);
+		super(msg,excFile,excLine,excNext);
+		node = xmlNode;
+		thrown = this;
 	}
+	@safe pure nothrow this(NwnXmlNode* xmlNode, Throwable toForward) {
+		super(toForward.msg,toForward.file,toForward.line,toForward.next);
+		node = xmlNode;
+		info = toForward.info;
+		thrown = toForward;
+	}
+	override string toString(){
+		string ret;
+		if(msg.length>0){
+			ret ~= node.line.to!string~":"~node.column.to!string~"| <"~node.tag~">: "~msg~" ("~typeid(thrown).name~")\n";
+		}
+
+		debug{
+			ret ~= "---- Stacktrace ----\n";
+			foreach(t ; info)
+				ret~=" "~t~"\n";
+		}
+
+		return ret;
+	}
+	NwnXmlNode* node;
+	Throwable thrown;
 }
 void BuildWidgets(NwnXmlNode* xmlNode, Node parent, string sDecal=""){
 	
@@ -192,12 +214,12 @@ void BuildWidgets(NwnXmlNode* xmlNode, Node parent, string sDecal=""){
 					parent = new UIScene(window, vbox, node.attr);
 				}
 				catch(Exception e){
-					throw new BuildException(node, e.msg);
+					throw new BuildException(xmlNode, e);
 				}
 			}
 		}
 		if(parent is null){
-			throw new Exception("UIScene not found in the root of the document");
+			throw new BuildException(null, "UIScene not found in the root of the document");
 		}
 
 		foreach_reverse(e ; xmlNode.children){
@@ -232,7 +254,7 @@ void BuildWidgets(NwnXmlNode* xmlNode, Node parent, string sDecal=""){
 			}
 		}
 		catch(Exception e){
-			throw new BuildException(xmlNode, e.msg);
+			throw new BuildException(xmlNode, e);
 		}
 
 		foreach_reverse(e ; xmlNode.children){

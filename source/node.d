@@ -3,7 +3,7 @@ module node;
 import std.stdio;
 import std.conv : to, parse, ConvException;
 import std.traits;
-import std.string : toLower, toUpper;
+import std.string : toUpper;
 import std.experimental.logger;
 import gtk.MainWindow;
 import gtk.Widget;
