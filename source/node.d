@@ -3,7 +3,7 @@ module node;
 import std.stdio;
 import std.conv : to, parse, ConvException;
 import std.traits;
-import std.string : toUpper;
+import std.string : toUpper, split;
 import std.experimental.logger;
 import gtk.MainWindow;
 import gtk.Widget;
@@ -80,6 +80,10 @@ class Node {
 	Node[] children;
 
 	Layout container;
+
+	@property string className() const{
+		return typeid(this).name.split(".")[1];
+	}
 }
 
 
@@ -192,7 +196,7 @@ class UIPane : Node {
 					case "width": 
 						switch(value){
 							case WidthMacro.PARENT: size.x=parent.size.x; break;
-							case WidthMacro.DYNAMIC: warning("width=DYNAMIC is not supported yet"); size.x=10; break;
+							case WidthMacro.DYNAMIC: warning(className~": width=DYNAMIC is not supported yet"); size.x=10; break;
 							default: size.x=value.to!int; break;
 						}
 						attributes.remove(key);
@@ -200,7 +204,7 @@ class UIPane : Node {
 					case "height": 
 						switch(value){
 							case HeightMacro.PARENT: size.y=parent.size.y; break;
-							case HeightMacro.DYNAMIC: warning("height=DYNAMIC is not supported yet"); size.y=10; break;
+							case HeightMacro.DYNAMIC: warning(className~": height=DYNAMIC is not supported yet"); size.y=10; break;
 							default: size.y=value.to!int; break;
 						}
 						attributes.remove(key);
@@ -222,7 +226,7 @@ class UIPane : Node {
 				}
 			}
 			catch(ResourceException e){
-				warning(e.msg);
+				warning(className~": "~e.msg);
 			}
 		}
 
@@ -245,6 +249,7 @@ class UIPane : Node {
 			attributes.remove("y");
 		}
 		super(name, parent, pos, size);
+
 		if(!visible){
 			container.setNoShowAll(true);
 			container.setVisible(visible);
@@ -272,39 +277,39 @@ class UIFrame : UIPane {
 						attributes.remove(key);
 						break;
 					case "fill": 
-						mfill = Resource.FindFileRes!Material(value.toLower);
+						mfill = Resource.FindFileRes!Material(value);
 						//attributes.remove(key);
 						break;
 					case "topleft": 
-						mborders[0] = Resource.FindFileRes!Material(value.toLower);
+						mborders[0] = Resource.FindFileRes!Material(value);
 						attributes.remove(key);
 						break;
 					case "top": 
-						mborders[1] = Resource.FindFileRes!Material(value.toLower);
+						mborders[1] = Resource.FindFileRes!Material(value);
 						attributes.remove(key);
 						break;
 					case "topright": 
-						mborders[2] = Resource.FindFileRes!Material(value.toLower);
+						mborders[2] = Resource.FindFileRes!Material(value);
 						attributes.remove(key);
 						break;
 					case "left": 
-						mborders[3] = Resource.FindFileRes!Material(value.toLower);
+						mborders[3] = Resource.FindFileRes!Material(value);
 						attributes.remove(key);
 						break;
 					case "right": 
-						mborders[4] = Resource.FindFileRes!Material(value.toLower);
+						mborders[4] = Resource.FindFileRes!Material(value);
 						attributes.remove(key);
 						break;
 					case "bottomleft": 
-						mborders[5] = Resource.FindFileRes!Material(value.toLower);
+						mborders[5] = Resource.FindFileRes!Material(value);
 						attributes.remove(key);
 						break;
 					case "bottom": 
-						mborders[6] = Resource.FindFileRes!Material(value.toLower);
+						mborders[6] = Resource.FindFileRes!Material(value);
 						attributes.remove(key);
 						break;
 					case "bottomright": 
-						mborders[7] = Resource.FindFileRes!Material(value.toLower);
+						mborders[7] = Resource.FindFileRes!Material(value);
 						attributes.remove(key);
 						break;
 					case "border": 
@@ -316,7 +321,7 @@ class UIFrame : UIPane {
 				}
 			}
 			catch(ResourceException e){
-				warning(e.msg);
+				warning(className~": "~e.msg);
 			}
 		}
 
@@ -456,14 +461,14 @@ class UIIcon : UIPane {
 			try{
 				switch(key){
 					case "img": 
-						mimg = Resource.FindFileRes!Material(value.toLower);
+						mimg = Resource.FindFileRes!Material(value);
 						attributes.remove(key);
 						break;
 					default: break;
 				}
 			}
 			catch(ResourceException e){
-				warning(e.msg);
+				warning(className~": "~e.msg);
 			}
 		}
 
@@ -523,7 +528,7 @@ class UIButton : UIPane {
 				}
 			}
 			catch(ResourceException e){
-				warning(e.msg);
+				warning(className~": "~e.msg);
 			}
 		}
 
@@ -679,7 +684,7 @@ class UIText : UIPane {
 			try{
 				switch(key){
 					case "editable":
-						warning("editable is not supported yet");
+						warning(className~": editable is not supported yet");
 						editable = value.to!bool;
 						attributes.remove(key);
 						break;
@@ -731,7 +736,7 @@ class UIText : UIPane {
 					case "strref":
 						if(text=="")
 							text = "{strref}";
-						warning("strref is not handled yet");
+						warning(className~": strref is not handled yet");
 						attributes.remove(key);
 						break;
 					case "text":
@@ -743,7 +748,7 @@ class UIText : UIPane {
 				}
 			}
 			catch(ResourceException e){
-				warning(e.msg);
+				warning(className~": "~e.msg);
 			}
 		}
 
