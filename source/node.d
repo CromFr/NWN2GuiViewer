@@ -179,6 +179,7 @@ class UIPane : Node {
 	this(Node parent, ref string[string] attributes){
 		string name;
 		Vect pos, size;
+		bool visible = true;
 
 		foreach(key ; attributes.byKey){
 			auto value = attributes[key];
@@ -206,6 +207,10 @@ class UIPane : Node {
 						break;
 					case "alpha": 
 						opacity = value.to!float;
+						attributes.remove(key);
+						break;
+					case "hidden": 
+						visible = !value.to!bool;
 						attributes.remove(key);
 						break;
 
@@ -240,7 +245,10 @@ class UIPane : Node {
 			attributes.remove("y");
 		}
 		super(name, parent, pos, size);
-		//container.overrideBackgroundColor(GtkStateFlags.NORMAL, new RGBA(0,1,0,1));
+		if(!visible){
+			container.setNoShowAll(true);
+			container.setVisible(visible);
+		}
 	}
 }
 
@@ -566,22 +574,22 @@ class UIButton : UIPane {
 
 		container.addOnButtonPress(delegate(Event e, Widget w){
 			foreach(state, node ; childrenFrames){
-				if(mouseover) node.container.setVisible(state==State.HIFOCUS || state==State.BASE);
-				else node.container.setVisible(state==State.DOWN || state==State.BASE);
+				if(mouseover) SetState(State.HIFOCUS);
+				else SetState(State.DOWN);
 			}
 			return false;
 		});
 		container.addOnButtonRelease((Event e, Widget w){
 			foreach(state, node ; childrenFrames){
-				if(mouseover) node.container.setVisible(state==State.HILITED || state==State.BASE);
-				else node.container.setVisible(state==State.UP || state==State.BASE);
+				if(mouseover) SetState(State.HILITED);
+				else SetState(State.UP);
 			}
 			return false;
 		});
 		container.addOnEnterNotify((Event e, Widget w){
 			mouseover = true;
 			foreach(state, node ; childrenFrames){
-				node.container.setVisible(state==State.HILITED || state==State.BASE);
+				SetState(State.HILITED);
 			}
 			return false;
 		});
@@ -592,9 +600,7 @@ class UIButton : UIPane {
 			e.getCoords(x, y);
 			if(!(0<=x && x<size.x && 0<=y && y<size.y)){
 				mouseover = false;
-				foreach(state, node ; childrenFrames){
-					node.container.setVisible(state==State.UP || state==State.BASE);
-				}
+				SetState(State.UP);
 			}
 			
 			return false;
@@ -627,6 +633,7 @@ class UIButton : UIPane {
 		}
 
 		childrenFrames[state] = frame;
+		frame.container.setNoShowAll(true);
 		frame.container.setVisible(state==State.UP || state==State.BASE);
 	}
 	void RegisterText(UIText text){
@@ -636,6 +643,16 @@ class UIButton : UIPane {
 		}
 
 		childText = text;
+	}
+
+	void SetState(in State state){
+		foreach(s, node ; childrenFrames){
+			node.container.setVisible(s==state || s==State.BASE);
+		}
+		if(childText !is null){
+			childText.container.setVisible(false);
+			childText.container.setVisible(true);
+		}
 	}
 }
 
@@ -745,6 +762,14 @@ class UIText : UIPane {
 
 		if(uppercase)
 			lbl.setText(lbl.getText.toUpper);
+
+		if(editable){
+
+		}
+		else{
+			lbl.setEvents(0);
+			container.setEvents(0);
+		}
 
 
 		lbl.setSizeRequest(size.x, size.y);
