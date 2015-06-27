@@ -3,10 +3,36 @@ module nwnxml;
 //import std.stdio;
 import std.uni;
 import std.file;
+import std.encoding;
+
+
+
 
 class NwnXml {
 	this(in DirEntry file){
-		this(cast(string)std.file.readText(file));
+		auto data = std.file.read(file);
+
+		string text = null;
+		if(text is null) text=decode!string(data);
+		if(text is null) text=decode!wstring(data);
+		if(text is null) text=decode!dstring(data);
+		if(text is null) text=decode!AsciiString(data);
+		if(text is null) text=decode!Windows1252String(data);
+		if(text is null) text=decode!Latin1String(data);
+
+		this(text);
+	}
+	private string decode(T)(void[] data){
+		import std.traits;
+		if((data.length*void.sizeof) % ForeachType!T.sizeof != 0)
+			return null;
+
+		if(isValid(cast(T)data)){
+			string text;
+			transcode(cast(T)data, text);
+			return text;
+		}
+		return null;
 	}
 	this(in string data) {
 
@@ -72,7 +98,7 @@ class NwnXml {
 				}break;
 				case ReadType.TAGNAME:{
 
-					if(isWhite(c) || c=='/' || c=='>'){
+					if(isSpace(c) || c=='/' || c=='>'){
 						if(bufIsClosingTag){
 							if(currentParent.tag == bufTagName){
 								currentNode = currentParent;
@@ -129,7 +155,7 @@ class NwnXml {
 						readType = ReadType.TAGEND;
 						goto switch_char;
 					}
-					else if(!isWhite(c)){//interesting char
+					else if(!isSpace(c)){//interesting char
 						bufAttrName = "";
 						bufAttrDelimiter = '\0';
 						bufAttrValue = "";
@@ -140,7 +166,7 @@ class NwnXml {
 
 				}break;
 				case ReadType.ATTRNAME:{
-					if(isWhite(c)){
+					if(isSpace(c)){
 						throw new ParseException(charLine, charCol, "Got a space in a attribute name before the =");
 					}
 					else if(c=='='){
@@ -166,7 +192,7 @@ class NwnXml {
 						}
 					}
 					else{
-						if((bufAttrDelimiter!='s' && c==bufAttrDelimiter) || (bufAttrDelimiter=='s' && (isWhite(c)||c=='>'||c=='/'))){
+						if((bufAttrDelimiter!='s' && c==bufAttrDelimiter) || (bufAttrDelimiter=='s' && (isSpace(c)||c=='>'||c=='/'))){
 							currentNode.attr[bufAttrName] = bufAttrValue;
 							//writeln("   ",bufAttrName,"=",bufAttrValue," (",bufAttrDelimiter,")");
 
@@ -227,6 +253,11 @@ class NwnXml {
 	}
 
 	NwnXmlNode* root;
+
+private:
+	static bool isSpace(in char c){
+		return c==' ' || c=='\t' || c=='\n' || c=='\r';
+	}
 	
 }
 

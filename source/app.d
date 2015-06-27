@@ -79,7 +79,7 @@ int main(string[] args)
 	}
 
 	if(checkOnly){
-		new NwnXml(cast(string)std.file.read(file));
+		new NwnXml(DirEntry(file));
 		return 0;
 	}
 
@@ -127,7 +127,6 @@ void BuildFromXmlFile(in string file){
 	NwnXml xml;
 	sw.start();
 	try{
-		xml = new NwnXml(cast(string)std.file.read(file));
 	}
 	catch(ParseException e){
 		critical("Ill-formed XML: ",e.msg);
@@ -137,6 +136,7 @@ void BuildFromXmlFile(in string file){
 		critical("Could not parse XML: ",e.msg);
 		return;
 	}
+		xml = new NwnXml(DirEntry(file));
 	sw.stop();
 	info("Parsed xml in ",sw.peek().to!("msecs",float)," ms");
 	
