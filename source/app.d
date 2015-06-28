@@ -15,10 +15,12 @@ import gtk.TextView;
 import gtk.ScrolledWindow;
 import gio.File;
 import gio.FileMonitor;
+import gdk.Pixbuf;
 
 import nwnxml;
 import resource;
 import node;
+import embedded;
 
 MainWindow window;
 VBox vbox;
@@ -102,9 +104,7 @@ int main(string[] args)
 	vbox.packEnd(consoleWrap, true, true, 5);
 	window.add(vbox);
 
-	string ico = Resource.FindFilePath("nwn2guiviewer.ico");
-	if(ico !is null) window.setIconFromFile(ico);
-	else warning("Icon file nwn2guiviewer.ico could not be found in path");
+	window.setIcon(new Pixbuf(RES_XPM_ICON));
 
 	BuildFromXmlFile(file);
 	window.showAll();

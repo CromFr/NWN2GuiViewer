@@ -30,5 +30,9 @@ class Material : Pixbuf{
 			null, null);
 	}
 
+	this(Pixbuf pb){
+		super(pb.getPixbufStruct);
+	}
+
 	string path;
 }

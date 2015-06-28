@@ -22,6 +22,7 @@ import cairo.Surface;
 import material;
 import resource;
 import nwnxml;
+import embedded;
 
 public import vect;
 
@@ -158,7 +159,7 @@ class UIScene : Node {
 		//window.setGeometryHints(null, &geom, GdkWindowHints.MIN_SIZE|GdkWindowHints.MAX_SIZE);
 
 		//window background
-		auto pbuf = Resource.FindFileRes!Material("bg.tga");
+		auto pbuf = new Pixbuf(RES_XPM_BACKGROUND);
 		auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
 		auto ctx = Context.create(surface);
 		setSourcePixbuf(ctx, pbuf, 0, 0);
