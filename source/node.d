@@ -56,6 +56,8 @@ class Node {
 		name = _name;
 		position = _position;
 		size = _size;
+		if(size.x<=0) size.x = 1;
+		if(size.y<=0) size.y = 1;
 
 		parent = _parent;
 
@@ -109,7 +111,7 @@ class UIScene : Node {
 					break;
 				case "width":
 					switch(value){
-						case WidthMacro.SCREEN: size.x=1024; break;
+						case WidthMacro.SCREEN: size.x=FullscreenSize.x; break;
 						default:
 							try size.x=value.to!int;
 							catch(ConvException) throw new Exception("width='"~value~"' is not valid. Possible values are: integer, 'SCREEN_WIDTH'");
@@ -118,7 +120,7 @@ class UIScene : Node {
 					break;
 				case "height":
 					switch(value){
-						case HeightMacro.SCREEN: size.y=768; break;
+						case HeightMacro.SCREEN: size.y=FullscreenSize.y; break;
 						default:
 							try size.y=value.to!int;
 							catch(ConvException) throw new Exception("height='"~value~"' is not valid. Possible values are: integer, 'SCREEN_HEIGHT'");
@@ -133,6 +135,12 @@ class UIScene : Node {
 					attributes.remove(key);
 					break;
 				case "draggable","fadein","fadeout","scriptloadable","priority","backoutkey": //Ignored attr
+					attributes.remove(key);
+					break;
+
+				case "fullscreen":
+					if(size.x==0) size.x=FullscreenSize.x;
+					if(size.y==0) size.y=FullscreenSize.y;
 					attributes.remove(key);
 					break;
 
@@ -165,13 +173,15 @@ class UIScene : Node {
 			c.identityMatrix();
 			return false;
 		});
-		
+
 		innercont.packStart(container, false, false, 0);
 
 		//Register instance
 		m_inst = this;
 	}
 
+	enum FullscreenSize = Vect(1024, 768);
+	
 	private __gshared UIScene m_inst;
 }
 
@@ -576,18 +586,23 @@ class UIButton : UIPane {
 			new UIText(this, attr);
 		}
 
+		//UP: normal state
+		//DOWN: pressing button, with mouse over
+		//FOCUSED: button has been pressed
+		//HILITED: the mouse if over
+		//HIFOCUS: has been pressed, mouse if over
+		//DISABLED: disabled by parameter/script
 
 		container.addOnButtonPress(delegate(Event e, Widget w){
 			foreach(state, node ; childrenFrames){
-				if(mouseover) SetState(State.HIFOCUS);
-				else SetState(State.DOWN);
+				SetState(State.DOWN);
 			}
 			return false;
 		});
 		container.addOnButtonRelease((Event e, Widget w){
 			foreach(state, node ; childrenFrames){
-				if(mouseover) SetState(State.HILITED);
-				else SetState(State.UP);
+				if(mouseover) SetState(State.HIFOCUS);
+				else SetState(State.FOCUSED);
 			}
 			return false;
 		});
@@ -607,7 +622,6 @@ class UIButton : UIPane {
 				mouseover = false;
 				SetState(State.UP);
 			}
-			
 			return false;
 		});
 	}
