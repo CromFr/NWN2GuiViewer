@@ -39,7 +39,6 @@ int main(string[] args)
 	if(respath !is null){
 		Resource.path ~= respath.split(pathSeparator);
 	}
-	Resource.path ~= "res";
 	Resource.CachePath();
 
 	foreach(p ; Resource.path){
