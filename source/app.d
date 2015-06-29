@@ -4,12 +4,10 @@ import std.file;
 import std.path;
 import std.string;
 import core.thread;
-import std.datetime : StopWatch;
+import std.datetime : StopWatch, SysTime;
 
 import gtk.Main;
-
-import gio.File;
-import gio.FileMonitor;
+import gdk.Threads;
 
 import nwnxml;
 import resource;
@@ -17,6 +15,8 @@ import node;
 import logger;
 import window;
 
+string openedFile;
+SysTime openedFileDate;
 
 int main(string[] args)
 {
@@ -46,18 +46,43 @@ int main(string[] args)
 		if(!p.exists)warning("Path \"",p,"\" does not exist");
 	}
 
+	openedFile = file;
+	openedFileDate = SysTime(0);
+
 	if(checkOnly){
-		new NwnXml(DirEntry(file));
+		new NwnXml(DirEntry(openedFile));
 		return 0;
 	}
 
 	auto window = new Window();
 
-	BuildFromXmlFile(file);
+	//BuildFromXmlFile(file);
 
+	ReloadFile();
+	threadsAddTimeout(200, &ReloadFileIfNeeded, null);
 	Window.Display();
 	Main.run();
 	return 0;
+}
+
+extern(C)
+int ReloadFileIfNeeded(void*){
+	if(openedFile.timeLastModified > openedFileDate){
+		//File changed
+		ReloadFile();
+	}
+	return true;
+}
+
+void ReloadFile(){
+	openedFileDate = openedFile.timeLastModified;
+	if(UIScene.Get !is null){
+		Window.RemoveScene();
+		Window.ClearLog();
+
+	}
+
+	BuildFromXmlFile(openedFile);
 }
 
 void BuildFromXmlFile(in string file){
@@ -99,24 +124,6 @@ void BuildFromXmlFile(in string file){
 	sw.stop();
 	info("Loaded scene in ",sw.peek().to!("msecs",float)," ms");
 
-	//=================================================== File monitoring
-	static FileMonitor mon;
-	if(mon !is null)mon.destroy;
-
-	mon = gio.File.File.parseName(absolutePath(file))
-		.monitorFile(FileMonitorFlags.NONE, null);
-	mon.addOnChanged((oldFile, newFile, e, mon){
-		if(e == FileMonitorEvent.CHANGES_DONE_HINT)
-		if(UIScene.Get !is null){
-			Window.RemoveScene();
-			Window.ClearLog();
-
-			if(newFile !is null)
-				BuildFromXmlFile(newFile.getPath);
-			else
-				BuildFromXmlFile(oldFile.getPath);
-		}
-	});
 
 	Window.Display();
 }
