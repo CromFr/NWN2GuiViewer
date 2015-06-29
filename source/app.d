@@ -36,6 +36,11 @@ class NWNLogger : Logger
 
     override void writeLogMsg(ref LogEntry log) @trusted
     {
+    	if(log.logLevel==LogLevel.trace){
+			writeln("\x1b[2m",log.file,"=> ",log.funcName,"@",log.line,": ",log.msg,"\x1b[m");
+			return;
+		}
+
         writeln("\x1b[2m",log.timestamp.toString[12..20],": \x1b[m",log.msg);
 
         if(window!is null && console!is null){
