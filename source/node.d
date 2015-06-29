@@ -242,38 +242,50 @@ class UIPane : Node {
 			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
-					case "name": 
+					case "name":
 						name=value;
 						xmlNode.attr.remove(key);
 						break;
-					case "width": 
+					case "width":
 						switch(value){
 							case WidthMacro.PARENT: size.x=parent.size.x; break;
 							case WidthMacro.DYNAMIC:
 								NWNLogger.xmlWarning(xmlNode, className~": width=DYNAMIC is not supported yet");
 								size.x=10;
 								break;
-							default: size.x=value.to!int; break;
+							default:
+								try size.x=value.to!int;
+								catch(ConvException e)
+									NWNLogger.xmlWarning(xmlNode,  key~"="~value~" is not an int ("~e.msg~")");
+								break;
 						}
 						xmlNode.attr.remove(key);
 						break;
-					case "height": 
+					case "height":
 						switch(value){
 							case HeightMacro.PARENT: size.y=parent.size.y; break;
 							case HeightMacro.DYNAMIC: 
 								NWNLogger.xmlWarning(xmlNode, className~": height=DYNAMIC is not supported yet");
 								size.y=10;
 								break;
-							default: size.y=value.to!int; break;
+							default:
+								try size.y=value.to!int;
+								catch(ConvException e)
+									NWNLogger.xmlWarning(xmlNode,  key~"="~value~" is not an int ("~e.msg~")");
+								break;
 						}
 						xmlNode.attr.remove(key);
 						break;
-					case "alpha": 
-						opacity = value.to!float;
+					case "alpha":
+						try opacity = value.to!float;
+						catch(ConvException e)
+							NWNLogger.xmlWarning(xmlNode,  key~"="~value~" is not a float ("~e.msg~")");
 						xmlNode.attr.remove(key);
 						break;
-					case "hidden": 
-						visible = !value.to!bool;
+					case "hidden":
+						try visible = !value.to!bool;
+						catch(ConvException e)
+							NWNLogger.xmlWarning(xmlNode,  key~"="~value~" is not a boolean ("~e.msg~")");
 						xmlNode.attr.remove(key);
 						break;
 
@@ -294,7 +306,11 @@ class UIPane : Node {
 				case XMacro.LEFT: pos.x=0; break;
 				case XMacro.RIGHT: pos.x=parent.size.x-size.x; break;
 				case XMacro.CENTER: pos.x=parent.size.x/2-size.x/2; break;
-				default: pos.x=xmlNode.attr["x"].to!int; break;
+				default: 
+					try pos.x=xmlNode.attr["x"].to!int;
+					catch(ConvException e)
+						NWNLogger.xmlWarning(xmlNode,  "x="~xmlNode.attr["x"]~" is not an int ("~e.msg~")");
+					break;
 			}
 			xmlNode.attr.remove("x");
 		}
@@ -303,7 +319,11 @@ class UIPane : Node {
 				case YMacro.TOP: pos.y=0; break;
 				case YMacro.BOTTOM: pos.y=parent.size.y-size.y; break;
 				case YMacro.CENTER: pos.y=parent.size.y/2-size.y/2; break;
-				default: pos.y=xmlNode.attr["y"].to!int; break;
+				default:
+					try pos.y=xmlNode.attr["y"].to!int;
+					catch(ConvException e)
+						NWNLogger.xmlWarning(xmlNode,  "x="~xmlNode.attr["y"]~" is not an int ("~e.msg~")");
+					break;
 			}
 			xmlNode.attr.remove("y");
 		}
@@ -331,7 +351,7 @@ class UIFrame : UIPane {
 					case "fillstyle":
 						try fillstyle = value.toUpper.to!FillStyle;
 						catch(ConvException e){
-							throw new BuildException(xmlNode, "Unknown fillstyle '"~value~"'");
+							throw new BuildException(xmlNode, key~"="~value~"  is not valid. Possible values are: "~(EnumMembers!FillStyle.stringof));
 						}
 						xmlNode.attr.remove(key);
 						break;
@@ -372,7 +392,9 @@ class UIFrame : UIPane {
 						xmlNode.attr.remove(key);
 						break;
 					case "border": 
-						border = value.to!uint;
+						try border = value.to!uint;
+						catch(ConvException e)
+							NWNLogger.xmlWarning(xmlNode,  key~"="~value~" is not an int ("~e.msg~")");
 						xmlNode.attr.remove(key);
 						break;
 					
@@ -393,8 +415,12 @@ class UIFrame : UIPane {
 		super(parent, xmlNode);
 
 		if(cast(UIButton)parent !is null && "state" in xmlNode.attr){
-			(cast(UIButton)parent)
-				.RegisterFrame(xmlNode.attr["state"].toUpper.to!(UIButton.State), this);
+			try{
+				(cast(UIButton)parent)
+					.RegisterFrame(xmlNode.attr["state"].toUpper.to!(UIButton.State), this);
+			}
+			catch(ConvException e)
+				NWNLogger.xmlWarning(xmlNode, "state="~xmlNode.attr["state"]~" is not an valid state. Possible values are: ",EnumMembers!(UIButton.State));
 		}
 
 		fillsize = size-2*border;
@@ -751,50 +777,66 @@ class UIText : UIPane {
 				switch(key){
 					case "editable":
 						NWNLogger.xmlWarning(xmlNode, className~": editable is not supported yet");
-						editable = value.to!bool;
+						try editable = value.to!bool;
+						catch(ConvException e)
+							NWNLogger.xmlWarning(xmlNode,  key~"="~value~" is not a boolean ("~e.msg~")");
 						xmlNode.attr.remove(key);
 						break;
 					case "align":
-						switch(value){
-							case "left": halign = Align.START; break;
-							case "center": halign = Align.CENTER; break;
-							case "right": halign = Align.END; break;
-							default: throw new BuildException(xmlNode, "align='"~value~"' is not valid. Possible values are: 'left', 'center', 'right'");
+						switch(value) with(HAlign){
+							case HAlign.LEFT: halign = Align.START; break;
+							case HAlign.CENTER: halign = Align.CENTER; break;
+							case HAlign.RIGHT: halign = Align.END; break;
+							default:
+								throw new BuildException(xmlNode, key~"="~value~" is not valid. Possible values are: "~(EnumMembers!HAlign.stringof));
 						}
 						xmlNode.attr.remove(key);
 						break;
 					case "valign":
-						switch(value){
-							case "top": valign = Align.START; break;
-							case "middle": valign = Align.CENTER; break;
-							case "bottom": valign = Align.END; break;
-							default: throw new BuildException(xmlNode, "valign='"~value~"' is not valid. Possible values are: 'top', 'middle', 'bottom'");
+						switch(value) with(VAlign){
+							case VAlign.TOP: valign = Align.START; break;
+							case VAlign.MIDDLE: valign = Align.CENTER; break;
+							case VAlign.BOTTOM: valign = Align.END; break;
+							default:
+								throw new BuildException(xmlNode, key~"="~value~" is not valid. Possible values are: "~(EnumMembers!VAlign.stringof));
 						}
 						xmlNode.attr.remove(key);
 						break;
 					case "multiline":
-						multiline = value.to!bool;
+						try multiline = value.to!bool;
+						catch(ConvException e)
+							NWNLogger.xmlWarning(xmlNode,  key~"="~value~" is not a boolean ("~e.msg~")");
 						xmlNode.attr.remove(key);
 						break;
 					case "maxlines":
-						lines = value.to!int;
+						try lines = value.to!int;
+						catch(ConvException e)
+							NWNLogger.xmlWarning(xmlNode,  key~"="~value~" is not a int ("~e.msg~")");
 						xmlNode.attr.remove(key);
 						break;
 					case "uppercase":
-						uppercase = value.to!bool;
+						try uppercase = value.to!bool;
+						catch(ConvException e)
+							NWNLogger.xmlWarning(xmlNode,  key~"="~value~" is not a boolean ("~e.msg~")");
 						xmlNode.attr.remove(key);
 						break;
 					case "color":
-						uint colorvalue = parse!int(value, 16);
-						color = new RGBA(
-							((colorvalue&0xFF0000)>>16)/255.0,
-							((colorvalue&0x00FF00)>>8)/255.0,
-							((colorvalue&0x0000FF))/255.0
-						);
+						try{
+							uint colorvalue = parse!int(value, 16);
+							color = new RGBA(
+								((colorvalue&0xFF0000)>>16)/255.0,
+								((colorvalue&0x00FF00)>>8)/255.0,
+								((colorvalue&0x0000FF))/255.0
+							);
+						}
+						catch(ConvException e)
+							NWNLogger.xmlWarning(xmlNode, key~"="~value~" is not a hexadecimal color value, ie 'F0F0F0' ("~e.msg~")");
 						xmlNode.attr.remove(key);
 						break;
 					case "pointsize":
-						fontsize = value.to!uint;
+						try fontsize = value.to!uint;
+						catch(ConvException e)
+							NWNLogger.xmlWarning(xmlNode, key~"="~value~" is not an int >= 0 ("~e.msg~")");
 						xmlNode.attr.remove(key);
 						break;
 
@@ -851,6 +893,21 @@ class UIText : UIPane {
 			(cast(UIButton)parent).RegisterText(this);
 		}
 	}
+
+	enum HAlign{
+		LEFT="left",
+		CENTER="center",
+		RIGHT="right",
+	}
+	enum VAlign{
+		TOP="top",
+		MIDDLE="middle",
+		BOTTOM="bottom",
+	}
+
+
+
+
 
 
 	bool uppercase;

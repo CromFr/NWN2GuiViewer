@@ -40,6 +40,7 @@ int main(string[] args)
 		Resource.path ~= respath.split(pathSeparator);
 	}
 	Resource.path ~= "res";
+	Resource.CachePath();
 
 	foreach(p ; Resource.path){
 		if(!p.exists)warning("Path \"",p,"\" does not exist");
@@ -120,7 +121,7 @@ void BuildFromXmlFile(in string file){
 	Window.Display();
 }
 
-void BuildWidgets(NwnXmlNode* xmlNode, Node parent, string sDecal=""){
+void BuildWidgets(NwnXmlNode* xmlNode, Node parent){
 	
 	if(xmlNode.tag == "ROOT"){
 		foreach(node ; xmlNode.children){
@@ -140,7 +141,7 @@ void BuildWidgets(NwnXmlNode* xmlNode, Node parent, string sDecal=""){
 
 		foreach_reverse(e ; xmlNode.children){
 			if(e.tag != "UIScene")
-				BuildWidgets(e, parent,sDecal~"  ");
+				BuildWidgets(e, parent);
 		}
 	}
 	else{
@@ -163,14 +164,14 @@ void BuildWidgets(NwnXmlNode* xmlNode, Node parent, string sDecal=""){
 					break;
 
 				default:
-					NWNLogger.xmlWarning(xmlNode, " is not handled by the program. Treated as a UIPane");
+					NWNLogger.xmlWarning(xmlNode, xmlNode.tag~" is not handled by the program. Treated as a UIPane");
 					parent = new UIPane(parent, xmlNode);
 					break;
 
 			}
 
 			foreach_reverse(e ; xmlNode.children){
-				BuildWidgets(e, parent,sDecal~"  ");
+				BuildWidgets(e, parent);
 			}
 		}
 		catch(Exception e){

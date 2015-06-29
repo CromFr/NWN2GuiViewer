@@ -1,7 +1,7 @@
 module resource;
 import std.file;
 import std.path;
-import std.string : chompPrefix;
+import std.string : chompPrefix, toLower;
 import std.experimental.logger;
 
 class ResourceException : Exception{
@@ -93,11 +93,26 @@ static:
 		}
 	}
 
+	void CachePath(){
+		foreach(p ; path){
+			if(p.exists && p.isDir){
+				foreach(ref file ; dirEntries(p, SpanMode.depth)){
+					if(file.isFile){
+						cachedFiles[file.baseName.toLower] = DirEntry(file.name);
+					}
+				}
+			}
+		}
+	}
+
 
 
 	T FindFileRes(T)(in string fileName){
 		try return Get!T(fileName);
 		catch(ResourceException e){
+			if(fileName.toLower in cachedFiles){
+				return CreateRes!T(fileName, cachedFiles[fileName.toLower]);
+			}
 			foreach(p ; path){
 				if(p.exists && p.isDir){
 					foreach(ref file ; dirEntries(p, SpanMode.depth)){
@@ -114,6 +129,9 @@ static:
 	}
 	string FindFilePath(in string fileName){
 		foreach(p ; path){
+			if(fileName.toLower in cachedFiles){
+				return cachedFiles[fileName.toLower];
+			}
 			if(p.exists && p.isDir){
 				foreach(ref file ; dirEntries(p, SpanMode.depth)){
 					if(file.isFile && filenameCmp!(CaseSensitive.no)(file.name.baseName, fileName)==0){
@@ -131,6 +149,7 @@ static:
 private:
 	this(){}
 	__gshared Object[string][TypeInfo] m_loadedRes;
+	__gshared DirEntry[string] cachedFiles;
 }
 
 
