@@ -193,12 +193,6 @@ class UIScene : Node {
 
 		super(name, null, Vect(0,0), size, Vect(cast(int)(xmlNode.column),cast(int)(xmlNode.line)));
 
-		Window.win.setTitle(name);
-
-		//Forbid resize
-		Window.win.setDefaultSize(size.x, size.y);
-		//auto geom = GdkGeometry(size.x, size.y, size.x, size.y);
-		//window.setGeometryHints(null, &geom, GdkWindowHints.MIN_SIZE|GdkWindowHints.MAX_SIZE);
 
 		//window background
 		auto pbuf = new Pixbuf(RES_XPM_BACKGROUND);
@@ -216,8 +210,6 @@ class UIScene : Node {
 			c.identityMatrix();
 			return false;
 		});
-
-		Window.SetScene(container);
 
 		//Register instance
 		m_inst = this;

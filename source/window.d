@@ -34,14 +34,12 @@ class Window : MainWindow {
 		console.setWrapMode(WrapMode.NONE);
 		consoleWrap.add(console);
 
-		guiContainer = new VBox(false, 0);
-		guiContainer.packStart(toolbar, false, true, 0);
-		guiContainer.packEnd(consoleWrap, true, true, 5);
-		add(guiContainer);
+		sceneContainer = new VBox(false, 0);
+		sceneContainer.packStart(toolbar, false, true, 0);
+		sceneContainer.packEnd(consoleWrap, true, true, 5);
+		add(sceneContainer);
 
 		setIcon(new Pixbuf(RES_XPM_ICON));
-
-
 
 
 		win = this;
@@ -52,20 +50,20 @@ class Window : MainWindow {
 		__gshared Window win;
 		
 
-		void SetScene(Widget content){
+		void SetScene(UIScene newScene){
 			with(win){
-				if(guiContent !is null)
-					guiContent.destroy();
-				guiContainer.packStart(content, false, false, 0);
-				guiContent = content;
-			}
-		}
-		void RemoveScene(){
-			with(win){
-				if(guiContent !is null){
-					UIScene.Get.destroy();
-					guiContent.unrealize();
-					guiContent.destroy();
+				if(scene !is null){
+					scene.container.destroy();
+					scene.destroy();
+				}
+				if(newScene !is null){
+					scene = newScene;
+					sceneContainer.packStart(newScene.container, false, false, 0);
+
+					setTitle(scene.name);
+					setDefaultSize(scene.size.x, scene.size.y);
+
+					scene.container.showAll();
 				}
 			}
 		}
@@ -95,8 +93,8 @@ class Window : MainWindow {
 	}
 
 private:
-	VBox guiContainer;
-	Widget guiContent;
+	VBox sceneContainer;
+	UIScene scene;
 	TextView console;
 	bool consoleEmpty = true;
 	

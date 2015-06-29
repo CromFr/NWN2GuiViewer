@@ -74,23 +74,20 @@ int ReloadFileIfNeeded(void*){
 
 void ReloadFile(){
 	openedFileDate = openedFile.timeLastModified;
-	if(UIScene.Get !is null){
-		Window.RemoveScene();
-		Window.ClearLog();
 
-	}
+	Window.ClearLog();
 
-	BuildFromXmlFile(openedFile);
+	Window.SetScene(BuildFromXmlFile(openedFile));
 }
 
-void BuildFromXmlFile(in string file){
+UIScene BuildFromXmlFile(in string file){
 	if(!exists(file)){
 		critical("File "~file~" does not exist");
-		return;
+		return null;
 	}
 	if(!isFile(file)){
 		critical("File "~file~" is not a file");
-		return;
+		return null;
 	}
 
 	StopWatch sw;
@@ -103,7 +100,7 @@ void BuildFromXmlFile(in string file){
 	}
 	catch(Exception e){
 		critical("Parse XML error @",e.toString);
-		return;
+		return null;
 	}
 	sw.stop();
 	info("Parsed xml in ",sw.peek().to!("msecs",float)," ms");
@@ -112,27 +109,27 @@ void BuildFromXmlFile(in string file){
 	//=================================================== Create object tree
 	sw.reset();
 	sw.start();
-	try{
-		BuildWidgets(xml.root, null);
-	}
+	UIScene scene;
+	try scene = BuildWidgets(xml.root, null);
 	catch(Exception e){
 		critical("GUI load error @",e.toString);
-		return;
+		return null;
 	}
 	sw.stop();
 	info("Loaded scene in ",sw.peek().to!("msecs",float)," ms");
 
-
-	Window.Display();
+	return scene;
 }
 
-void BuildWidgets(NwnXmlNode* xmlNode, Node parent){
+UIScene BuildWidgets(NwnXmlNode* xmlNode, Node parent){
 	
 	if(xmlNode.tag == "ROOT"){
+		UIScene scene;
+
 		foreach(node ; xmlNode.children){
 			if(node.tag == "UIScene"){
 				try{
-					parent = new UIScene(node);
+					scene = new UIScene(node);
 				}
 				catch(Exception e){
 					NWNLogger.xmlException(xmlNode, e.msg);
@@ -140,14 +137,15 @@ void BuildWidgets(NwnXmlNode* xmlNode, Node parent){
 				}
 			}
 		}
-		if(parent is null){
+		if(scene is null){
 			throw new BuildException(null, "UIScene not found in the root of the document");
 		}
 
 		foreach_reverse(e ; xmlNode.children){
 			if(e.tag != "UIScene")
-				BuildWidgets(e, parent);
+				BuildWidgets(e, scene);
 		}
+		return scene;
 	}
 	else{
 		try{
@@ -184,6 +182,5 @@ void BuildWidgets(NwnXmlNode* xmlNode, Node parent){
 			throw e;
 		}
 	}
-
-
+	return null;
 }
