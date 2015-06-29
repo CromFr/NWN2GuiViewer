@@ -4,7 +4,6 @@ import std.stdio;
 import std.conv : to, parse, ConvException;
 import std.traits;
 import std.string : toUpper, split;
-import std.experimental.logger;
 import gtk.MainWindow;
 import gtk.Widget;
 import gtk.Layout;
@@ -23,6 +22,8 @@ import material;
 import resource;
 import nwnxml;
 import embedded;
+import logger;
+import window;
 
 public import vect;
 
@@ -46,6 +47,44 @@ enum HeightMacro : string{
 	PARENT="PARENT_HEIGHT",
 	DYNAMIC="DYNAMIC",
 	SCREEN="SCREEN_HEIGHT"
+}
+
+class BuildException : Exception {
+	import std.conv : to;
+
+	@safe pure nothrow this(NwnXmlNode* xmlNode, in string msg,
+			string excFile =__FILE__,
+			size_t excLine = __LINE__,
+			Throwable excNext = null) {
+		super(msg,excFile,excLine,excNext);
+		node = xmlNode;
+		thrown = this;
+	}
+	@safe pure nothrow this(NwnXmlNode* xmlNode, Throwable toForward) {
+		super(toForward.msg,toForward.file,toForward.line,toForward.next);
+		node = xmlNode;
+		info = toForward.info;
+		thrown = toForward;
+	}
+	override string toString(){
+		string ret;
+		if(msg.length>0){
+			if(node !is null)
+				ret ~= node.line.to!string~":"~node.column.to!string~"| <"~node.tag~">: "~msg~" ("~typeid(thrown).name~")\n";
+			else
+				ret ~= msg~" ("~typeid(thrown).name~")\n";
+		}
+
+		debug{
+			ret ~= "---- Stacktrace ----\n";
+			foreach(t ; info)
+				ret~=" "~t~"\n";
+		}
+
+		return ret;
+	}
+	NwnXmlNode* node;
+	Throwable thrown;
 }
 
 //#######################################################################################
@@ -102,7 +141,7 @@ class UIScene : Node {
 	}
 
 
-	this(MainWindow window, VBox innercont, NwnXmlNode* xmlNode){
+	this(NwnXmlNode* xmlNode){
 		string name;
 		Vect size;
 
@@ -118,7 +157,7 @@ class UIScene : Node {
 						case WidthMacro.SCREEN: size.x=FullscreenSize.x; break;
 						default:
 							try size.x=value.to!int;
-							catch(ConvException) throw new Exception("width='"~value~"' is not valid. Possible values are: integer, 'SCREEN_WIDTH'");
+							catch(ConvException) throw new BuildException(xmlNode, "width='"~value~"' is not valid. Possible values are: integer, 'SCREEN_WIDTH'");
 					}
 					xmlNode.attr.remove(key);
 					break;
@@ -127,7 +166,7 @@ class UIScene : Node {
 						case HeightMacro.SCREEN: size.y=FullscreenSize.y; break;
 						default:
 							try size.y=value.to!int;
-							catch(ConvException) throw new Exception("height='"~value~"' is not valid. Possible values are: integer, 'SCREEN_HEIGHT'");
+							catch(ConvException) throw new BuildException(xmlNode, "height='"~value~"' is not valid. Possible values are: integer, 'SCREEN_HEIGHT'");
 					}
 					xmlNode.attr.remove(key);
 					break;
@@ -154,10 +193,10 @@ class UIScene : Node {
 
 		super(name, null, Vect(0,0), size, Vect(cast(int)(xmlNode.column),cast(int)(xmlNode.line)));
 
-		window.setTitle(name);
+		Window.win.setTitle(name);
 
 		//Forbid resize
-		window.setDefaultSize(size.x, size.y);
+		Window.win.setDefaultSize(size.x, size.y);
 		//auto geom = GdkGeometry(size.x, size.y, size.x, size.y);
 		//window.setGeometryHints(null, &geom, GdkWindowHints.MIN_SIZE|GdkWindowHints.MAX_SIZE);
 
@@ -178,7 +217,7 @@ class UIScene : Node {
 			return false;
 		});
 
-		innercont.packStart(container, false, false, 0);
+		Window.SetScene(container);
 
 		//Register instance
 		m_inst = this;
@@ -210,7 +249,10 @@ class UIPane : Node {
 					case "width": 
 						switch(value){
 							case WidthMacro.PARENT: size.x=parent.size.x; break;
-							case WidthMacro.DYNAMIC: warning(className~": width=DYNAMIC is not supported yet"); size.x=10; break;
+							case WidthMacro.DYNAMIC:
+								NWNLogger.xmlWarning(xmlNode, className~": width=DYNAMIC is not supported yet");
+								size.x=10;
+								break;
 							default: size.x=value.to!int; break;
 						}
 						xmlNode.attr.remove(key);
@@ -218,7 +260,10 @@ class UIPane : Node {
 					case "height": 
 						switch(value){
 							case HeightMacro.PARENT: size.y=parent.size.y; break;
-							case HeightMacro.DYNAMIC: warning(className~": height=DYNAMIC is not supported yet"); size.y=10; break;
+							case HeightMacro.DYNAMIC: 
+								NWNLogger.xmlWarning(xmlNode, className~": height=DYNAMIC is not supported yet");
+								size.y=10;
+								break;
 							default: size.y=value.to!int; break;
 						}
 						xmlNode.attr.remove(key);
@@ -240,7 +285,7 @@ class UIPane : Node {
 				}
 			}
 			catch(ResourceException e){
-				warning(className~": "~e.msg);
+				NWNLogger.xmlWarning(xmlNode, className~": "~e.msg);
 			}
 		}
 
@@ -286,7 +331,7 @@ class UIFrame : UIPane {
 					case "fillstyle":
 						try fillstyle = value.toUpper.to!FillStyle;
 						catch(ConvException e){
-							throw new Exception("Unknown fillstyle '"~value~"'");
+							throw new BuildException(xmlNode, "Unknown fillstyle '"~value~"'");
 						}
 						xmlNode.attr.remove(key);
 						break;
@@ -335,7 +380,7 @@ class UIFrame : UIPane {
 				}
 			}
 			catch(ResourceException e){
-				warning(className~": "~e.msg);
+				NWNLogger.xmlWarning(xmlNode, className~": "~e.msg);
 			}
 		}
 
@@ -482,7 +527,7 @@ class UIIcon : UIPane {
 				}
 			}
 			catch(ResourceException e){
-				warning(className~": "~e.msg);
+				NWNLogger.xmlWarning(xmlNode, className~": "~e.msg);
 			}
 		}
 
@@ -542,7 +587,7 @@ class UIButton : UIPane {
 				}
 			}
 			catch(ResourceException e){
-				warning(className~": "~e.msg);
+				NWNLogger.xmlWarning(xmlNode, className~": "~e.msg);
 			}
 		}
 
@@ -576,7 +621,7 @@ class UIButton : UIPane {
 				}
 			}
 			else
-				throw new Exception("Style "~xmlNode.attr["style"]~" could not be found in stylesheet.xml");
+				throw new BuildException(xmlNode, "Style "~xmlNode.attr["style"]~" could not be found in stylesheet.xml");
 			xmlNode.attr.remove("style");
 		}
 
@@ -705,7 +750,7 @@ class UIText : UIPane {
 			try{
 				switch(key){
 					case "editable":
-						warning(className~": editable is not supported yet");
+						NWNLogger.xmlWarning(xmlNode, className~": editable is not supported yet");
 						editable = value.to!bool;
 						xmlNode.attr.remove(key);
 						break;
@@ -714,7 +759,7 @@ class UIText : UIPane {
 							case "left": halign = Align.START; break;
 							case "center": halign = Align.CENTER; break;
 							case "right": halign = Align.END; break;
-							default: throw new Exception("align='"~value~"' is not valid. Possible values are: 'left', 'center', 'right'");
+							default: throw new BuildException(xmlNode, "align='"~value~"' is not valid. Possible values are: 'left', 'center', 'right'");
 						}
 						xmlNode.attr.remove(key);
 						break;
@@ -723,7 +768,7 @@ class UIText : UIPane {
 							case "top": valign = Align.START; break;
 							case "middle": valign = Align.CENTER; break;
 							case "bottom": valign = Align.END; break;
-							default: throw new Exception("valign='"~value~"' is not valid. Possible values are: 'top', 'middle', 'bottom'");
+							default: throw new BuildException(xmlNode, "valign='"~value~"' is not valid. Possible values are: 'top', 'middle', 'bottom'");
 						}
 						xmlNode.attr.remove(key);
 						break;
@@ -757,7 +802,7 @@ class UIText : UIPane {
 					case "strref":
 						if(text=="")
 							text = "{strref}";
-						warning(className~": strref is not handled yet");
+						NWNLogger.xmlWarning(xmlNode, className~": strref is not handled yet");
 						xmlNode.attr.remove(key);
 						break;
 					case "text":
@@ -769,7 +814,7 @@ class UIText : UIPane {
 				}
 			}
 			catch(ResourceException e){
-				warning(className~": "~e.msg);
+				NWNLogger.xmlWarning(xmlNode, className~": "~e.msg);
 			}
 		}
 

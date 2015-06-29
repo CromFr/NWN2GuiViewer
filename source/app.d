@@ -5,58 +5,18 @@ import std.path;
 import std.string;
 import core.thread;
 import std.datetime : StopWatch;
-import std.experimental.logger;
 
 import gtk.Main;
-import gtk.MainWindow;
-import gtk.VBox;
-import gtk.MenuBar;
-import gtk.TextView;
-import gtk.ScrolledWindow;
+
 import gio.File;
 import gio.FileMonitor;
-import gdk.Pixbuf;
 
 import nwnxml;
 import resource;
 import node;
-import embedded;
+import logger;
+import window;
 
-MainWindow window;
-VBox vbox;
-FileMonitor mon;
-TextView console;
-
-class NWNLogger : Logger
-{
-    this() @safe
-    {
-        super(LogLevel.all);
-    }
-
-    override void writeLogMsg(ref LogEntry log) @trusted
-    {
-    	if(log.logLevel==LogLevel.trace){
-			writeln("\x1b[2m",log.file,"=> ",log.funcName,"@",log.line,": ",log.msg,"\x1b[m");
-			return;
-		}
-
-        writeln("\x1b[2m",log.timestamp.toString[12..20],": \x1b[m",log.msg);
-
-        if(window!is null && console!is null){
-	        string msg = log.msg;
-	    	switch(log.logLevel){
-	    		with(LogLevel){
-	    			case info:    msg=`Info: `~msg; break;
-	    			case warning: msg=`WARNING: `~msg; break;
-	    			case critical:msg=`=> ERROR: `~msg; break;
-	    			default: assert(0);
-	    		}
-	    	}
-			console.appendText("\n"~msg);
-        }
-    }
-}
 
 int main(string[] args)
 {
@@ -70,7 +30,7 @@ int main(string[] args)
 		    "c|check", &checkOnly,
 		    "p|respath",  &respath);
 
-	sharedLog = new NWNLogger;//sharedLog is a global var defining the default logger
+	new NWNLogger;
 
 	//Use last arg as file path
 	if(file=="")
@@ -90,29 +50,11 @@ int main(string[] args)
 		return 0;
 	}
 
-	window = new MainWindow("");
-	
-	auto menubar = new MenuBar();
-	auto menu = menubar.append("Move console");
-
-	auto consoleWrap = new ScrolledWindow(PolicyType.EXTERNAL, PolicyType.ALWAYS);
-	consoleWrap.setMinContentHeight(100);
-	console = new TextView;
-	console.setEditable(false);
-	console.setCursorVisible(false);
-	console.setLeftMargin(5);
-	console.setWrapMode(WrapMode.NONE);
-	consoleWrap.add(console);
-
-	vbox = new VBox(false, 0);
-	vbox.packStart(menubar, false, true, 0);
-	vbox.packEnd(consoleWrap, true, true, 5);
-	window.add(vbox);
-
-	window.setIcon(new Pixbuf(RES_XPM_ICON));
+	auto window = new Window();
 
 	BuildFromXmlFile(file);
-	window.showAll();
+
+	Window.Display();
 	Main.run();
 	return 0;
 }
@@ -156,6 +98,8 @@ void BuildFromXmlFile(in string file){
 	sw.stop();
 	info("Loaded scene in ",sw.peek().to!("msecs",float)," ms");
 
+	//=================================================== File monitoring
+	static FileMonitor mon;
 	if(mon !is null)mon.destroy;
 
 	mon = gio.File.File.parseName(absolutePath(file))
@@ -163,9 +107,8 @@ void BuildFromXmlFile(in string file){
 	mon.addOnChanged((oldFile, newFile, e, mon){
 		if(e == FileMonitorEvent.CHANGES_DONE_HINT)
 		if(UIScene.Get !is null){
-			UIScene.Get.container.destroy;
-			UIScene.Get.destroy;
-			console.getBuffer.setText("");
+			Window.RemoveScene();
+			Window.ClearLog();
 
 			if(newFile !is null)
 				BuildFromXmlFile(newFile.getPath);
@@ -174,55 +117,20 @@ void BuildFromXmlFile(in string file){
 		}
 	});
 
-	window.showAll();
+	Window.Display();
 }
-class BuildException : Exception {
-	import std.conv : to;
 
-	@safe pure nothrow this(NwnXmlNode* xmlNode, in string msg,
-			string excFile =__FILE__,
-			size_t excLine = __LINE__,
-			Throwable excNext = null) {
-		super(msg,excFile,excLine,excNext);
-		node = xmlNode;
-		thrown = this;
-	}
-	@safe pure nothrow this(NwnXmlNode* xmlNode, Throwable toForward) {
-		super(toForward.msg,toForward.file,toForward.line,toForward.next);
-		node = xmlNode;
-		info = toForward.info;
-		thrown = toForward;
-	}
-	override string toString(){
-		string ret;
-		if(msg.length>0){
-			if(node !is null)
-				ret ~= node.line.to!string~":"~node.column.to!string~"| <"~node.tag~">: "~msg~" ("~typeid(thrown).name~")\n";
-			else
-				ret ~= msg~" ("~typeid(thrown).name~")\n";
-		}
-
-		debug{
-			ret ~= "---- Stacktrace ----\n";
-			foreach(t ; info)
-				ret~=" "~t~"\n";
-		}
-
-		return ret;
-	}
-	NwnXmlNode* node;
-	Throwable thrown;
-}
 void BuildWidgets(NwnXmlNode* xmlNode, Node parent, string sDecal=""){
 	
 	if(xmlNode.tag == "ROOT"){
 		foreach(node ; xmlNode.children){
 			if(node.tag == "UIScene"){
 				try{
-					parent = new UIScene(window, vbox, node);
+					parent = new UIScene(node);
 				}
 				catch(Exception e){
-					throw new BuildException(xmlNode, e);
+					NWNLogger.xmlException(xmlNode, e.msg);
+					throw e;
 				}
 			}
 		}
@@ -255,18 +163,19 @@ void BuildWidgets(NwnXmlNode* xmlNode, Node parent, string sDecal=""){
 					break;
 
 				default:
-					warning(xmlNode.tag, " is not handled by the program. Treated as a UIPane");
+					NWNLogger.xmlWarning(xmlNode, " is not handled by the program. Treated as a UIPane");
 					parent = new UIPane(parent, xmlNode);
 					break;
 
 			}
+
+			foreach_reverse(e ; xmlNode.children){
+				BuildWidgets(e, parent,sDecal~"  ");
+			}
 		}
 		catch(Exception e){
-			throw new BuildException(xmlNode, e);
-		}
-
-		foreach_reverse(e ; xmlNode.children){
-			BuildWidgets(e, parent,sDecal~"  ");
+			NWNLogger.xmlException(xmlNode, e.msg);
+			throw e;
 		}
 	}
 
