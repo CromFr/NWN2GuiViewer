@@ -1,20 +1,29 @@
 import gtk.Widget;
 import gtk.MainWindow;
 import gtk.VBox;
-import gtk.MenuBar;
+import gtk.Toolbar;
+import gtk.ToolButton;
 import gtk.TextView;
 import gtk.ScrolledWindow;
 import gdk.Pixbuf;
 
 
+import node : UIScene;
 import embedded;
+import app : ReloadFile;
 
 class Window : MainWindow {
 	this() {
 		super("");
 		
-		auto menubar = new MenuBar();
-		auto menu = menubar.append("Move console");
+		auto toolbar = new Toolbar();
+		toolbar.setIconSize(IconSize.SMALL_TOOLBAR);
+
+		auto butReload = new ToolButton(null, "Reload file");
+		butReload.setIconName("view-refresh-symbolic");
+		butReload.setTooltipText("Reload file");
+		butReload.addOnClicked((MenuItem){ReloadFile();});
+		toolbar.insert(butReload);
 
 		auto consoleWrap = new ScrolledWindow(PolicyType.EXTERNAL, PolicyType.ALWAYS);
 		consoleWrap.setMinContentHeight(100);
@@ -26,7 +35,7 @@ class Window : MainWindow {
 		consoleWrap.add(console);
 
 		guiContainer = new VBox(false, 0);
-		guiContainer.packStart(menubar, false, true, 0);
+		guiContainer.packStart(toolbar, false, true, 0);
 		guiContainer.packEnd(consoleWrap, true, true, 5);
 		add(guiContainer);
 
@@ -53,8 +62,11 @@ class Window : MainWindow {
 		}
 		void RemoveScene(){
 			with(win){
-				if(guiContent !is null)
+				if(guiContent !is null){
+					UIScene.Get.destroy();
+					guiContent.unrealize();
 					guiContent.destroy();
+				}
 			}
 		}
 

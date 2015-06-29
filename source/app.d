@@ -56,8 +56,6 @@ int main(string[] args)
 
 	auto window = new Window();
 
-	//BuildFromXmlFile(file);
-
 	ReloadFile();
 	threadsAddTimeout(200, &ReloadFileIfNeeded, null);
 	Window.Display();
