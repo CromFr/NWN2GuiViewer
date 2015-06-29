@@ -11,7 +11,6 @@ class Material : Pixbuf{
 	this(DirEntry file){
 		path = file.name;
 
-		char[] pixData;
 		Image img = readImage(File(path));
 		auto rowStride = img.header.width*4;
 		foreach_reverse(row ; 0..img.header.height){
@@ -21,7 +20,7 @@ class Material : Pixbuf{
 			}
 		}
 		super(
-			cast(char[])pixData,
+			pixData,
 			Colorspace.RGB, true,
 			8,
 			cast(int)img.header.width,
@@ -35,4 +34,5 @@ class Material : Pixbuf{
 	}
 
 	string path;
+	char[] pixData;//todo: do not duplicate pix data here
 }
