@@ -157,7 +157,8 @@ class UIScene : Node {
 						case WidthMacro.SCREEN: size.x=FullscreenSize.x; break;
 						default:
 							try size.x=value.to!int;
-							catch(ConvException) throw new BuildException(xmlNode, "width='"~value~"' is not valid. Possible values are: integer, 'SCREEN_WIDTH'");
+							catch(ConvException)
+								NWNLogger.xmlWarning(xmlNode, "width='"~value~"' is not valid. Possible values are: integer, 'SCREEN_WIDTH'");
 					}
 					xmlNode.attr.remove(key);
 					break;
@@ -166,7 +167,8 @@ class UIScene : Node {
 						case HeightMacro.SCREEN: size.y=FullscreenSize.y; break;
 						default:
 							try size.y=value.to!int;
-							catch(ConvException) throw new BuildException(xmlNode, "height='"~value~"' is not valid. Possible values are: integer, 'SCREEN_HEIGHT'");
+							catch(ConvException)
+								NWNLogger.xmlWarning(xmlNode, "height='"~value~"' is not valid. Possible values are: integer, 'SCREEN_HEIGHT'");
 					}
 					xmlNode.attr.remove(key);
 					break;
@@ -342,9 +344,8 @@ class UIFrame : UIPane {
 				switch(key){
 					case "fillstyle":
 						try fillstyle = value.toUpper.to!FillStyle;
-						catch(ConvException e){
-							throw new BuildException(xmlNode, key~"="~value~"  is not valid. Possible values are: "~(EnumMembers!FillStyle.stringof));
-						}
+						catch(ConvException e)
+							NWNLogger.xmlWarning(xmlNode, key~"="~value~"  is not valid. Possible values are: ",EnumMembers!FillStyle);
 						xmlNode.attr.remove(key);
 						break;
 					case "fill": 
@@ -639,7 +640,7 @@ class UIButton : UIPane {
 				}
 			}
 			else
-				throw new BuildException(xmlNode, "Style "~xmlNode.attr["style"]~" could not be found in stylesheet.xml");
+				NWNLogger.xmlWarning(xmlNode, "Style "~xmlNode.attr["style"]~" could not be found in stylesheet.xml");
 			xmlNode.attr.remove("style");
 		}
 
@@ -780,7 +781,7 @@ class UIText : UIPane {
 							case HAlign.CENTER: halign = Align.CENTER; break;
 							case HAlign.RIGHT: halign = Align.END; break;
 							default:
-								throw new BuildException(xmlNode, key~"="~value~" is not valid. Possible values are: "~(EnumMembers!HAlign.stringof));
+								NWNLogger.xmlWarning(xmlNode, key~"="~value~" is not valid. Possible values are: ",EnumMembers!HAlign);
 						}
 						xmlNode.attr.remove(key);
 						break;
@@ -790,7 +791,7 @@ class UIText : UIPane {
 							case VAlign.MIDDLE: valign = Align.CENTER; break;
 							case VAlign.BOTTOM: valign = Align.END; break;
 							default:
-								throw new BuildException(xmlNode, key~"="~value~" is not valid. Possible values are: "~(EnumMembers!VAlign.stringof));
+								NWNLogger.xmlWarning(xmlNode, key~"="~value~" is not valid. Possible values are: ",EnumMembers!VAlign);
 						}
 						xmlNode.attr.remove(key);
 						break;
