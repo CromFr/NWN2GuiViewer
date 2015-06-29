@@ -1,18 +1,47 @@
 
+# NWN2 GUI viewer
+
+- by Crom (Thibaut CHARLES)
 
 
-# XML syntax notes
+# Features
 
-- Comments cannot contain "==" nor "--"
+- Check XML syntax & attributes correctness
+- Auto reload current file if changed: save the file in your editor to update the view
+- Windows/Linux (and OSX?) support, with command line options
+- Bugs that need to be fixed
 
-- Every attributes MUST be double-quoted :
+# Planned features
 
-```xml
-<UIButton 	name="myButton" 
-			width="PARENT_WIDTH" height="42" 
-			style="STYLE_SMALL_BUTTON" buttontype="radio" groupid="1" groupmemberid="1"
-			update="true" 
-			OnSelected="UIObject_Misc_ExecuteServerScript('gui_dm_inventory','SelectEquipement',local:10,local:11)"
-			OnUpdate="UIButton_OnUpdate_SetCheckedIfLocalVarEquals(local:11,1)">
-</Button>
+- Handle UIListBox & UIScrollbar
+- Editable UIText
+- OnXXX basic function calls (ie UIButton_Input_ShowObject, UIObject_Misc_SetLocalVarString, etc.)
+- STRREF support
+- Local var support
+- UIGrid support
+- ...
+
+# Usage
+
+### From the command line
+
+```bash
+nwn2gui [args] guifile
+# guifile: Any NWN2 GUI file
+# args:
+#  -f, --file     Specify the XML file to open
+#  -c, --check    Check only XML syntax
+#                 Return nonzero on error
+#  -p, --respath  NWN2 UI folder & custom resource folders
+#                 Can specify multiples paths separated
+#                 by ';' on windows or ':' on linux
+```
+
+
+```bash
+# Example for Windows
+nwn2gui -p "C:/Program Files (x86)/Atari/Neverwinter Nights 2/UI/default;." mainmenu.xml
+
+# Linux
+nwn2gui -p "/media/windows/Program Files (x86)/Atari/Neverwinter Nights 2/UI/default:." mainmenu.xml
 ```
