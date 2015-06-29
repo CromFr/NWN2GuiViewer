@@ -278,6 +278,19 @@ struct NwnXmlNode{
 		if(parent !is null)
 			_parent.children ~= &this;
 	}
+	this(in string _tag,
+		in string[string] _attr,
+		NwnXmlNode* _parent,
+		NwnXmlNode*[] _children,
+		in size_t _line,
+		in size_t _column){
+		tag = _tag;
+		attr = cast(string[string])(_attr.dup);
+		parent = _parent;
+		children = _children;
+		line = _line;
+		column = _column;
+	}
 }
 
 class ParseException : Exception {

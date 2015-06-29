@@ -52,13 +52,14 @@ enum HeightMacro : string{
 //#######################################################################################
 //#######################################################################################
 class Node {
-	this(string _name, Node _parent, in Vect _position, in Vect _size) {
+	this(string _name, Node _parent, in Vect _position, in Vect _size, in Vect _xmlPosition) {
 
 		name = _name;
 		position = _position;
 		size = _size;
 		if(size.x<=0) size.x = 1;
 		if(size.y<=0) size.y = 1;
+		xmlPosition = _xmlPosition;
 
 		parent = _parent;
 
@@ -84,6 +85,8 @@ class Node {
 
 	Layout container;
 
+	Vect xmlPosition;
+
 	@property string className() const{
 		return typeid(this).name.split(".")[1];
 	}
@@ -99,16 +102,16 @@ class UIScene : Node {
 	}
 
 
-	this(MainWindow window, VBox innercont, ref string[string] attributes){
+	this(MainWindow window, VBox innercont, NwnXmlNode* xmlNode){
 		string name;
 		Vect size;
 
-		foreach(key ; attributes.byKey){
-			auto value = attributes[key];
+		foreach(key ; xmlNode.attr.byKey){
+			auto value = xmlNode.attr[key];
 			switch(key){
 				case "name": 
 					name=value;
-					attributes.remove(key);
+					xmlNode.attr.remove(key);
 					break;
 				case "width":
 					switch(value){
@@ -117,7 +120,7 @@ class UIScene : Node {
 							try size.x=value.to!int;
 							catch(ConvException) throw new Exception("width='"~value~"' is not valid. Possible values are: integer, 'SCREEN_WIDTH'");
 					}
-					attributes.remove(key);
+					xmlNode.attr.remove(key);
 					break;
 				case "height":
 					switch(value){
@@ -126,30 +129,30 @@ class UIScene : Node {
 							try size.y=value.to!int;
 							catch(ConvException) throw new Exception("height='"~value~"' is not valid. Possible values are: integer, 'SCREEN_HEIGHT'");
 					}
-					attributes.remove(key);
+					xmlNode.attr.remove(key);
 					break;
 				case "OnAdd": 
-					attributes.remove(key);
+					xmlNode.attr.remove(key);
 					break;//TODO impl
 
 				case "x","y": //position should always be 0
-					attributes.remove(key);
+					xmlNode.attr.remove(key);
 					break;
 				case "draggable","fadein","fadeout","scriptloadable","priority","backoutkey": //Ignored attr
-					attributes.remove(key);
+					xmlNode.attr.remove(key);
 					break;
 
 				case "fullscreen":
 					if(size.x==0) size.x=FullscreenSize.x;
 					if(size.y==0) size.y=FullscreenSize.y;
-					attributes.remove(key);
+					xmlNode.attr.remove(key);
 					break;
 
 				default: break;
 			}
 		}
 
-		super(name, null, Vect(0,0), size);
+		super(name, null, Vect(0,0), size, Vect(cast(int)(xmlNode.column),cast(int)(xmlNode.line)));
 
 		window.setTitle(name);
 
@@ -191,18 +194,18 @@ class UIScene : Node {
 //#######################################################################################
 //#######################################################################################
 class UIPane : Node {
-	this(Node parent, ref string[string] attributes){
+	this(Node parent, NwnXmlNode* xmlNode){
 		string name;
 		Vect pos, size;
 		bool visible = true;
 
-		foreach(key ; attributes.byKey){
-			auto value = attributes[key];
+		foreach(key ; xmlNode.attr.byKey){
+			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
 					case "name": 
 						name=value;
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "width": 
 						switch(value){
@@ -210,7 +213,7 @@ class UIPane : Node {
 							case WidthMacro.DYNAMIC: warning(className~": width=DYNAMIC is not supported yet"); size.x=10; break;
 							default: size.x=value.to!int; break;
 						}
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "height": 
 						switch(value){
@@ -218,15 +221,15 @@ class UIPane : Node {
 							case HeightMacro.DYNAMIC: warning(className~": height=DYNAMIC is not supported yet"); size.y=10; break;
 							default: size.y=value.to!int; break;
 						}
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "alpha": 
 						opacity = value.to!float;
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "hidden": 
 						visible = !value.to!bool;
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 
 					case "OnAdd": break;//TODO impl
@@ -241,25 +244,25 @@ class UIPane : Node {
 			}
 		}
 
-		if("x" in attributes){
-			switch(attributes["x"]){
+		if("x" in xmlNode.attr){
+			switch(xmlNode.attr["x"]){
 				case XMacro.LEFT: pos.x=0; break;
 				case XMacro.RIGHT: pos.x=parent.size.x-size.x; break;
 				case XMacro.CENTER: pos.x=parent.size.x/2-size.x/2; break;
-				default: pos.x=attributes["x"].to!int; break;
+				default: pos.x=xmlNode.attr["x"].to!int; break;
 			}
-			attributes.remove("x");
+			xmlNode.attr.remove("x");
 		}
-		if("y" in attributes){
-			switch(attributes["y"]){
+		if("y" in xmlNode.attr){
+			switch(xmlNode.attr["y"]){
 				case YMacro.TOP: pos.y=0; break;
 				case YMacro.BOTTOM: pos.y=parent.size.y-size.y; break;
 				case YMacro.CENTER: pos.y=parent.size.y/2-size.y/2; break;
-				default: pos.y=attributes["y"].to!int; break;
+				default: pos.y=xmlNode.attr["y"].to!int; break;
 			}
-			attributes.remove("y");
+			xmlNode.attr.remove("y");
 		}
-		super(name, parent, pos, size);
+		super(name, parent, pos, size, Vect(cast(int)(xmlNode.column),cast(int)(xmlNode.line)));
 
 		if(!visible){
 			container.setNoShowAll(true);
@@ -272,12 +275,12 @@ class UIPane : Node {
 //#######################################################################################
 //#######################################################################################
 class UIFrame : UIPane {
-	this(Node parent, ref string[string] attributes){
+	this(Node parent, NwnXmlNode* xmlNode){
 		Material mfill;//, mtopleft, mtop, mtopright, mleft, mright, mbottomleft, mbottom, mbottomright;
 		Material[8] mborders;
 
-		foreach(key ; attributes.byKey){
-			auto value = attributes[key];
+		foreach(key ; xmlNode.attr.byKey){
+			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
 					case "fillstyle":
@@ -285,47 +288,47 @@ class UIFrame : UIPane {
 						catch(ConvException e){
 							throw new Exception("Unknown fillstyle '"~value~"'");
 						}
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "fill": 
 						mfill = Resource.FindFileRes!Material(value);
-						//attributes.remove(key);
+						//xmlNode.attr.remove(key);
 						break;
 					case "topleft": 
 						mborders[0] = Resource.FindFileRes!Material(value);
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "top": 
 						mborders[1] = Resource.FindFileRes!Material(value);
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "topright": 
 						mborders[2] = Resource.FindFileRes!Material(value);
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "left": 
 						mborders[3] = Resource.FindFileRes!Material(value);
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "right": 
 						mborders[4] = Resource.FindFileRes!Material(value);
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "bottomleft": 
 						mborders[5] = Resource.FindFileRes!Material(value);
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "bottom": 
 						mborders[6] = Resource.FindFileRes!Material(value);
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "bottomright": 
 						mborders[7] = Resource.FindFileRes!Material(value);
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "border": 
 						border = value.to!uint;
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					
 					default: break;
@@ -337,16 +340,16 @@ class UIFrame : UIPane {
 		}
 
 		//UIframe specific
-		if("width" !in attributes)
-			attributes["width"] = "PARENT_WIDTH";
-		if("height" !in attributes)
-			attributes["height"] = "PARENT_HEIGHT";
+		if("width" !in xmlNode.attr)
+			xmlNode.attr["width"] = "PARENT_WIDTH";
+		if("height" !in xmlNode.attr)
+			xmlNode.attr["height"] = "PARENT_HEIGHT";
 
-		super(parent, attributes);
+		super(parent, xmlNode);
 
-		if(cast(UIButton)parent !is null && "state" in attributes){
+		if(cast(UIButton)parent !is null && "state" in xmlNode.attr){
 			(cast(UIButton)parent)
-				.RegisterFrame(attributes["state"].toUpper.to!(UIButton.State), this);
+				.RegisterFrame(xmlNode.attr["state"].toUpper.to!(UIButton.State), this);
 		}
 
 		fillsize = size-2*border;
@@ -464,16 +467,16 @@ private:
 //#######################################################################################
 //#######################################################################################
 class UIIcon : UIPane {
-	this(Node parent, ref string[string] attributes){
+	this(Node parent, NwnXmlNode* xmlNode){
 		Material mimg;
 
-		foreach(key ; attributes.byKey){
-			auto value = attributes[key];
+		foreach(key ; xmlNode.attr.byKey){
+			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
 					case "img": 
 						mimg = Resource.FindFileRes!Material(value);
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					default: break;
 				}
@@ -483,7 +486,7 @@ class UIIcon : UIPane {
 			}
 		}
 
-		super(parent, attributes);
+		super(parent, xmlNode);
 
 		if(mimg !is null){
 
@@ -525,15 +528,15 @@ class UIIcon : UIPane {
 //#######################################################################################
 //#######################################################################################
 class UIButton : UIPane {
-	this(Node parent, ref string[string] attributes){
+	this(Node parent, NwnXmlNode* xmlNode){
 
-		foreach(key ; attributes.byKey){
-			auto value = attributes[key];
+		foreach(key ; xmlNode.attr.byKey){
+			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
 					case "text": 
 						defaultText = value;
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					default: break;
 				}
@@ -543,48 +546,51 @@ class UIButton : UIPane {
 			}
 		}
 
-		super(parent, attributes);
+		super(parent, xmlNode);
 
 
-		if("style" in attributes){
+		if("style" in xmlNode.attr){
 			auto stylesheet = Resource.FindFileRes!NwnXml("stylesheet.xml");
-			auto styleNode = stylesheet.FindFirstByName(stylesheet.root, attributes["style"]);
+			auto styleNode = stylesheet.FindFirstByName(stylesheet.root, xmlNode.attr["style"]);
 			if(styleNode !is null){
-				//Merge with current attributes
+				//Merge with current xmlNode.attr
 				foreach(key, value ; styleNode.attr){
-					if(key !in attributes && key!="name"){
-						//do not override current attributes with style attributes
-						attributes[key] = value;
+					if(key !in xmlNode.attr && key!="name"){
+						//do not override current xmlNode.attr with style xmlNode.attr
+						xmlNode.attr[key] = value;
 					}
 				}
 				//Add children (they will be overridden later when parsing inner UIFrames)
 				foreach_reverse(child ; styleNode.children){
 					if(child.tag == "UIFrame"){
-						new UIFrame(this, child.attr);
+						auto node = NwnXmlNode(child.tag, child.attr, null, [], xmlNode.line, xmlNode.column);
+						new UIFrame(this, &node);
 					}
 					else if(child.tag == "UIText"){
-						child.attr["text"] = defaultText;
-						child.attr["width"] = "PARENT_WIDTH";
-						child.attr["height"] = "PARENT_HEIGHT";
-						new UIText(this, child.attr);
+						auto node = NwnXmlNode(child.tag, child.attr, null, [], xmlNode.line, xmlNode.column);
+						node.attr["text"] = defaultText;
+						node.attr["width"] = "PARENT_WIDTH";
+						node.attr["height"] = "PARENT_HEIGHT";
+						new UIText(this, &node);
 					}
 				}
 			}
 			else
-				throw new Exception("Style "~attributes["style"]~" could not be found in stylesheet.xml");
-			attributes.remove("style");
+				throw new Exception("Style "~xmlNode.attr["style"]~" could not be found in stylesheet.xml");
+			xmlNode.attr.remove("style");
 		}
 
 		if(childText is null && defaultText!is null){
 			//Create default UIText
-			auto attr = [
+
+			auto node = NwnXmlNode("UIText", [
 				"align": "center",
 				"valign": "middle",
 				"text": defaultText,
 				"width": "PARENT_WIDTH",
 				"height": "PARENT_HEIGHT"
-			];
-			new UIText(this, attr);
+			], null, [], xmlNode.line, xmlNode.column);
+			new UIText(this, &node);
 		}
 
 		//UP: normal state
@@ -681,7 +687,7 @@ class UIButton : UIPane {
 //#######################################################################################
 //#######################################################################################
 class UIText : UIPane {
-	this(Node parent, ref string[string] attributes){
+	this(Node parent, NwnXmlNode* xmlNode){
 
 		bool editable = false;
 		bool multiline = false;
@@ -694,14 +700,14 @@ class UIText : UIPane {
 		uint fontsize = 14;
 
 
-		foreach(key ; attributes.byKey){
-			auto value = attributes[key];
+		foreach(key ; xmlNode.attr.byKey){
+			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
 					case "editable":
 						warning(className~": editable is not supported yet");
 						editable = value.to!bool;
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "align":
 						switch(value){
@@ -710,7 +716,7 @@ class UIText : UIPane {
 							case "right": halign = Align.END; break;
 							default: throw new Exception("align='"~value~"' is not valid. Possible values are: 'left', 'center', 'right'");
 						}
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "valign":
 						switch(value){
@@ -719,19 +725,19 @@ class UIText : UIPane {
 							case "bottom": valign = Align.END; break;
 							default: throw new Exception("valign='"~value~"' is not valid. Possible values are: 'top', 'middle', 'bottom'");
 						}
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "multiline":
 						multiline = value.to!bool;
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "maxlines":
 						lines = value.to!int;
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "uppercase":
 						uppercase = value.to!bool;
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "color":
 						uint colorvalue = parse!int(value, 16);
@@ -740,11 +746,11 @@ class UIText : UIPane {
 							((colorvalue&0x00FF00)>>8)/255.0,
 							((colorvalue&0x0000FF))/255.0
 						);
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "pointsize":
 						fontsize = value.to!uint;
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 
 
@@ -752,11 +758,11 @@ class UIText : UIPane {
 						if(text=="")
 							text = "{strref}";
 						warning(className~": strref is not handled yet");
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 					case "text":
 						text = value;
-						attributes.remove(key);
+						xmlNode.attr.remove(key);
 						break;
 
 					default: break;
@@ -767,7 +773,7 @@ class UIText : UIPane {
 			}
 		}
 
-		super(parent, attributes);
+		super(parent, xmlNode);
 
 		auto lbl = new Label(text);
 		lbl.setLineWrap(multiline);

@@ -196,7 +196,10 @@ class BuildException : Exception {
 	override string toString(){
 		string ret;
 		if(msg.length>0){
-			ret ~= node.line.to!string~":"~node.column.to!string~"| <"~node.tag~">: "~msg~" ("~typeid(thrown).name~")\n";
+			if(node !is null)
+				ret ~= node.line.to!string~":"~node.column.to!string~"| <"~node.tag~">: "~msg~" ("~typeid(thrown).name~")\n";
+			else
+				ret ~= msg~" ("~typeid(thrown).name~")\n";
 		}
 
 		debug{
@@ -216,7 +219,7 @@ void BuildWidgets(NwnXmlNode* xmlNode, Node parent, string sDecal=""){
 		foreach(node ; xmlNode.children){
 			if(node.tag == "UIScene"){
 				try{
-					parent = new UIScene(window, vbox, node.attr);
+					parent = new UIScene(window, vbox, node);
 				}
 				catch(Exception e){
 					throw new BuildException(xmlNode, e);
@@ -236,24 +239,24 @@ void BuildWidgets(NwnXmlNode* xmlNode, Node parent, string sDecal=""){
 		try{
 			switch(xmlNode.tag){
 				case "UIPane": 
-					parent = new UIPane(parent, xmlNode.attr);
+					parent = new UIPane(parent, xmlNode);
 					break;
 				case "UIFrame": 
-					parent = new UIFrame(parent, xmlNode.attr);
+					parent = new UIFrame(parent, xmlNode);
 					break;
 				case "UIIcon":
-					parent = new UIIcon(parent, xmlNode.attr);
+					parent = new UIIcon(parent, xmlNode);
 					break;
 				case "UIButton":
-					parent = new UIButton(parent, xmlNode.attr);
+					parent = new UIButton(parent, xmlNode);
 					break;
 				case "UIText":
-					parent = new UIText(parent, xmlNode.attr);
+					parent = new UIText(parent, xmlNode);
 					break;
 
 				default:
 					warning(xmlNode.tag, " is not handled by the program. Treated as a UIPane");
-					parent = new UIPane(parent, xmlNode.attr);
+					parent = new UIPane(parent, xmlNode);
 					break;
 
 			}
