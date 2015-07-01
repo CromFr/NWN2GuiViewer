@@ -104,6 +104,7 @@ class Node {
 
 		container = new Layout(null, null);
 		container.setSizeRequest(size.x, size.y);
+		container.setSize(size.x, size.y);
 		container.setHscrollPolicy(GtkScrollablePolicy.MINIMUM);
 		container.setVscrollPolicy(GtkScrollablePolicy.MINIMUM);
 		container.setName(name);

@@ -1,12 +1,12 @@
 import gtk.Widget;
 import gtk.MainWindow;
 import gtk.VBox;
+import gtk.Paned;
 import gtk.Toolbar;
 import gtk.ToolButton;
 import gtk.TextView;
 import gtk.ScrolledWindow;
 import gdk.Pixbuf;
-
 
 import node : UIScene;
 import embedded;
@@ -15,6 +15,8 @@ import app : ReloadFile;
 class Window : MainWindow {
 	this() {
 		super("");
+		setIcon(new Pixbuf(RES_XPM_ICON));
+		setDefaultSize(400, 500);
 		
 		auto toolbar = new Toolbar();
 		toolbar.setIconSize(IconSize.SMALL_TOOLBAR);
@@ -25,8 +27,9 @@ class Window : MainWindow {
 		butReload.addOnClicked((MenuItem){ReloadFile();});
 		toolbar.insert(butReload);
 
+
 		auto consoleWrap = new ScrolledWindow(PolicyType.EXTERNAL, PolicyType.ALWAYS);
-		consoleWrap.setMinContentHeight(100);
+		consoleWrap.setSizeRequest(-1, 100);
 		console = new TextView;
 		console.setEditable(false);
 		console.setCursorVisible(false);
@@ -34,15 +37,21 @@ class Window : MainWindow {
 		console.setWrapMode(WrapMode.NONE);
 		consoleWrap.add(console);
 
-		sceneContainer = new VBox(false, 0);
-		sceneContainer.packStart(toolbar, false, true, 0);
-		sceneContainer.packEnd(consoleWrap, true, true, 5);
-		add(sceneContainer);
+		sceneContainer = new ScrolledWindow(PolicyType.AUTOMATIC, PolicyType.AUTOMATIC);
 
-		setIcon(new Pixbuf(RES_XPM_ICON));
+		auto paned = new Paned(Orientation.VERTICAL);
+		paned.pack1(sceneContainer, true, true);
+		paned.pack2(consoleWrap, false, true);
+		
+
+		mainContainer = new VBox(false, 0);
+		mainContainer.packStart(toolbar, false, true, 0);
+		mainContainer.packEnd(paned, true, true, 0);
+		add(mainContainer);
 
 
 		win = this;
+		showAll();
 	}
 
 
@@ -58,20 +67,12 @@ class Window : MainWindow {
 				}
 				if(newScene !is null){
 					scene = newScene;
-					sceneContainer.packStart(newScene.container, false, false, 0);
+					sceneContainer.add(scene.container);
 
 					setTitle(scene.name);
-					setDefaultSize(scene.size.x, scene.size.y);
 
 					scene.container.showAll();
 				}
-			}
-		}
-
-
-		void Display(){
-			with(win){
-				showAll();
 			}
 		}
 
@@ -93,7 +94,8 @@ class Window : MainWindow {
 	}
 
 private:
-	VBox sceneContainer;
+	VBox mainContainer;
+	ScrolledWindow sceneContainer;
 	UIScene scene;
 	TextView console;
 	bool consoleEmpty = true;
