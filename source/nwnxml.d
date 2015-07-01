@@ -242,15 +242,6 @@ class NwnXml {
 	}
 
 
-	NwnXmlNode* FindFirstByName(NwnXmlNode* from, in string name){
-		if("name" in from.attr && from.attr["name"]==name)
-			return from;
-		foreach(child ; from.children){
-			auto ret = FindFirstByName(child, name);
-			if(ret !is null)return ret;
-		}
-		return null;
-	}
 
 	NwnXmlNode* root;
 
@@ -290,6 +281,23 @@ struct NwnXmlNode{
 		children = _children;
 		line = _line;
 		column = _column;
+	}
+
+	NwnXmlNode* FindFirstParentByTag(in string tagToFind){
+		for(auto node=parent ; node !is null ; node=node.parent){
+			if(node.tag == tagToFind)
+				return node;
+		}
+		return null;
+	}
+	NwnXmlNode* FindFirstByName(in string name){
+		if("name" in this.attr && this.attr["name"]==name)
+			return &this;
+		foreach(child ; this.children){
+			auto ret = child.FindFirstByName(name);
+			if(ret !is null)return ret;
+		}
+		return null;
 	}
 }
 

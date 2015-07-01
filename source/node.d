@@ -616,7 +616,7 @@ class UIButton : UIPane {
 
 		if("style" in xmlNode.attr){
 			auto stylesheet = Resource.FindFileRes!NwnXml("stylesheet.xml");
-			auto styleNode = stylesheet.FindFirstByName(stylesheet.root, xmlNode.attr["style"]);
+			auto styleNode = stylesheet.root.FindFirstByName(xmlNode.attr["style"]);
 			if(styleNode !is null){
 				//Merge with current xmlNode.attr
 				foreach(key, value ; styleNode.attr){
