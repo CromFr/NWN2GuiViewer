@@ -55,20 +55,23 @@ int main(string[] args)
 
 	auto window = new Window();
 
-	ReloadFile();
-	threadsAddTimeout(200, &ReloadFileIfNeeded, null);
-	Window.Display();
+
+	extern(C) int wrap(string fun)(void* ret){
+		mixin(fun~"();");
+		return cast(ubyte)ret!=0;
+	}
+
+	threadsAddTimeout(0, &(wrap!"ReloadFile"), cast(void*)0);
+	threadsAddTimeout(200, &(wrap!"ReloadFileIfNeeded"), cast(void*)1);
 	Main.run();
 	return 0;
 }
 
-extern(C)
-int ReloadFileIfNeeded(void*){
+void ReloadFileIfNeeded(){
 	if(openedFile.timeLastModified > openedFileDate){
 		//File changed
 		ReloadFile();
 	}
-	return true;
 }
 
 void ReloadFile(){
