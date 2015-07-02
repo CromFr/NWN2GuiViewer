@@ -181,13 +181,45 @@ class UIScene : Node {
 				case "x","y": //position should always be 0
 					xmlNode.attr.remove(key);
 					break;
-				case "draggable","fadein","fadeout","scriptloadable","priority","backoutkey": //Ignored attr
+				case "fadein","fadeout","scriptloadable","priority","backoutkey": //Ignored attr
 					xmlNode.attr.remove(key);
 					break;
 
 				case "fullscreen":
 					if(size.x==0) size.x=FullscreenSize.x;
 					if(size.y==0) size.y=FullscreenSize.y;
+					xmlNode.attr.remove(key);
+					break;
+
+				case "priority",
+				     "updaterate",
+				     "draggable",
+				     "dragregion_x",
+				     "dragregion_y",
+				     "dragregion_width",
+				     "dragregion_height",
+				     "dragresizable",
+				     "dragresizeborder",
+				     "capturemouseclicks", "capturemousevents",
+				     "expiretime",
+				     "idleexpiretime",
+				     "autolayout",
+				     "modal",
+				     "OnCreate",
+				     "OnDestroy",
+				     "OnAdd",
+				     "OnRemove",
+				     "OnBackout",
+				     "OnUpdate",
+				     "OnUnhandledMouseClick",
+				     :
+					NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
+					xmlNode.attr.remove(key);
+					break;
+
+				case "minwidth",
+				     "minheight":
+					NWNLogger.xmlWarning(xmlNode, className~": "~key~" is useless and does nothing");
 					xmlNode.attr.remove(key);
 					break;
 
@@ -285,9 +317,29 @@ class UIPane : Node {
 						xmlNode.attr.remove(key);
 						break;
 
-					case "OnAdd": break;//TODO impl
+					
+					case "MouseDownSFX",
+					     "MouseUpSFX",
+					     "MouseDragSFX",
+					     "MouseDropSFX",
+					     "tupple",
+					     "hideoverride",
+					     "OnLeftClick",
+					     "OnLeftDoubleClick",
+					     "OnRightClick",
+					     "OnRightDoubleClick":
+						NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
+						xmlNode.attr.remove(key);
+						break;
 
-					case "draggable","fadein","fadeout","scriptloadable","priority","backoutkey": break;//Ignored attr
+					case "draggable",
+					     "fadein",
+					     "fadeout",
+					     "scriptloadable",
+					     "priority",
+					     "backoutkey":
+					    //Ignored attributes
+						break;
 
 					default: break;
 				}
@@ -390,6 +442,19 @@ class UIFrame : UIPane {
 						try border = value.to!uint;
 						catch(ConvException e)
 							NWNLogger.xmlWarning(xmlNode,  key~"="~value~" is not an int ("~e.msg~")");
+						xmlNode.attr.remove(key);
+						break;
+
+
+					case "mhtop",
+					     "mhbottom",
+					     "mvleft",
+					     "mvright",
+					     "mhside",
+					     "mvside",
+					     "maside",
+					     "color":
+						NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
 						xmlNode.attr.remove(key);
 						break;
 					
@@ -600,8 +665,27 @@ class UIButton : UIPane {
 			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
+					case "strref":
+						if(text=="")
+							text = "{strref}";
+						NWNLogger.xmlLimitation(xmlNode, className~": strref is not yet supported");
+						xmlNode.attr.remove(key);
+						break;
 					case "text": 
 						defaultText = value;
+						xmlNode.attr.remove(key);
+						break;
+
+					case "repeatcallback",
+					     "groupid",
+					     "groupmemberid",
+					     "buttontype",
+					     "color",
+					     "disabledcolor",
+					     "disabledtextcolor",
+					     "OnSelected",
+					     "OnUnselected":
+						NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
 						xmlNode.attr.remove(key);
 						break;
 					default: break;
@@ -764,6 +848,7 @@ class UIText : UIPane {
 		string text = "";
 		auto color = new RGBA(1,1,1);
 		uint fontsize = 14;
+		string fontfamily = "";
 
 
 		foreach(key ; xmlNode.attr.byKey){
@@ -833,6 +918,29 @@ class UIText : UIPane {
 							NWNLogger.xmlWarning(xmlNode, key~"="~value~" is not an int >= 0 ("~e.msg~")");
 						xmlNode.attr.remove(key);
 						break;
+					case "fontfamily",
+					     "style",
+					     "nextcontrol",
+					     "prevcontrol",
+					     "filter",
+					     "maxnumber",
+					     "allowspace",
+					     "allowpunc",
+					     "password",
+					     "sanitized",
+					     "indent",
+					     "hangingindent",
+					     "hilite", "highlightonmouseover",
+					     "sizetofit",
+					     "buttonoverlay",
+					     "returnrestricted",
+					     "maxlength",
+					     "highlightcolor",
+					     "OnReturn",
+					     "OnLostFocus":
+						NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
+						xmlNode.attr.remove(key);
+						break;
 
 
 					case "strref":
@@ -846,6 +954,12 @@ class UIText : UIPane {
 						xmlNode.attr.remove(key);
 						break;
 
+
+					case "poscenter", "selectable", "selectioncolor":
+						NWNLogger.xmlWarning(xmlNode, className~": "~key~" is useless and does nothing");
+						xmlNode.attr.remove(key);
+						break;
+
 					default: break;
 				}
 			}
@@ -855,6 +969,14 @@ class UIText : UIPane {
 		}
 
 		super(parent, xmlNode);
+
+
+		auto stylesheet = Resource.FindFileRes!NwnXml("fontfamily.xml");
+		auto styleNode = stylesheet.root.FindFirstByName(xmlNode.attr["style"]);
+		if(styleNode !is null){
+
+		Widget textWid;
+		TextBuffer textBuf;
 
 		if(editable){
 			auto textView = new TextView();
