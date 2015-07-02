@@ -3,13 +3,14 @@ module node;
 import std.stdio;
 import std.conv : to, parse, ConvException;
 import std.traits;
-import std.string : toUpper, split;
+import std.string : toUpper, split, indexOf;
 import gtk.MainWindow;
 import gtk.Widget;
 import gtk.Layout;
 import gtk.Image;
 import gtk.VBox;
 import gtk.Label;
+import gtk.TextView;
 import gdk.RGBA;
 import gdk.Cairo;
 import gdk.Event;
@@ -770,7 +771,6 @@ class UIText : UIPane {
 			try{
 				switch(key){
 					case "editable":
-						NWNLogger.xmlWarning(xmlNode, className~": editable is not supported yet");
 						try editable = value.to!bool;
 						catch(ConvException e)
 							NWNLogger.xmlWarning(xmlNode,  key~"="~value~" is not a boolean ("~e.msg~")");
@@ -856,31 +856,95 @@ class UIText : UIPane {
 
 		super(parent, xmlNode);
 
-		auto lbl = new Label(text);
-		lbl.setLineWrap(multiline);
-		if(multiline) lbl.setLineWrapMode(PangoWrapMode.WORD);
-		lbl.setLines(multiline? lines : 1);
-		lbl.setHalign(halign);
-		lbl.setValign(valign);
-		lbl.overrideColor(StateFlags.NORMAL, color);
-
-		//See modifyFont (new PgFontDescription(PgFontDescription.fromString(family ~ " " ~ size)));
-		lbl.modifyFont("", cast(int)(fontsize*0.7));
-
-		if(uppercase)
-			lbl.setText(lbl.getText.toUpper);
-
 		if(editable){
+			auto textView = new TextView();
+			textView.overrideBackgroundColor(StateFlags.NORMAL, new RGBA(0,0,0,0));
 
+			//Make it editable
+			textView.setEditable(true);
+
+			//text
+			textView.getBuffer.setText(text);
+
+			//Multiline text
+			if(multiline) textView.setWrapMode(WrapMode.WORD_CHAR);
+			else textView.setWrapMode(WrapMode.NONE);
+
+			//Line count limitation
+			textView.getBuffer.addOnInsertText((iter, toIns, pos, txtbuf){
+				if(txtbuf.getLineCount>=lines && toIns.indexOf('\n')!=-1){
+					//do not insert
+				}
+				else{
+					txtbuf.insert(iter, toIns.toUpper);
+				}
+			});
+
+			//Text alignment
+			switch(halign) with(Align){
+				case START:  textView.setJustification(Justification.LEFT); break;
+				case CENTER: textView.setJustification(Justification.CENTER); break;
+				case END:    textView.setJustification(Justification.RIGHT); break;
+				default: assert(0);
+			}
+			if(valign!=Align.START)NWNLogger.xmlLimitation(xmlNode, className~": valign is not yet supported with editable=true");
+
+			//Color
+			textView.overrideColor(StateFlags.NORMAL, color);
+
+			//Font
+			//See modifyFont (new PgFontDescription(PgFontDescription.fromString(family ~ " " ~ size)));
+			//textView.modifyFont("", cast(int)(fontsize*0.7));
+			import pango.PgFontDescription;
+			textView.overrideFont(PgFontDescription.fromString(""~(fontsize*0.7).to!int.to!string));
+
+			//Uppercase
+			if(uppercase){
+				auto buf = textView.getBuffer;
+				buf.setText(buf.getText.toUpper);
+				buf.addOnInsertText((iter, toIns, pos, txtbuf){
+					txtbuf.insert(iter, toIns.toUpper);
+				});
+			}
+
+			textView.setSizeRequest(size.x, size.y);
+			container.add(textView);
 		}
 		else{
+			auto lbl = new Label(text);
+
+			//Multiline
+			lbl.setLineWrap(multiline);
+			if(multiline) lbl.setLineWrapMode(PangoWrapMode.WORD);
+
+			//Line count limitation
+			lbl.setLines(multiline? lines : 1);
+
+			//Text alignment
+			lbl.setHalign(halign);
+			lbl.setValign(valign);
+
+			//Color
+			lbl.overrideColor(StateFlags.NORMAL, color);
+
+			//Font
+			//See modifyFont (new PgFontDescription(PgFontDescription.fromString(family ~ " " ~ size)));
+			lbl.modifyFont("", cast(int)(fontsize*0.7));
+
+			//Uppercase
+			if(uppercase) lbl.setText(lbl.getText.toUpper);
+
+			//Ignore events
+			lbl.setSensitive(false);
 			lbl.setEvents(0);
 			container.setEvents(0);
+
+
+			lbl.setSizeRequest(size.x, size.y);
+			container.add(lbl);
 		}
 
-
-		lbl.setSizeRequest(size.x, size.y);
-		container.add(lbl);
+		
 
 		//Register to button
 		if(cast(UIButton)parent !is null){
