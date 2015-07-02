@@ -33,6 +33,9 @@ class NWNLogger : Logger
 		}
 	}
 
+	static void xmlLimitation(T...)(NwnXmlNode* node, T msg){
+		sharedLog.warning(node.line,":",node.column,":<",node.tag,"> NWN2GuiViewer limitation: ", msg);
+	}
 	static void xmlWarning(T...)(NwnXmlNode* node, T msg){
 		sharedLog.warning(node.line,":",node.column,":<",node.tag,"> Warning: ", msg);
 	}

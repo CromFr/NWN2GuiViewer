@@ -245,7 +245,7 @@ class UIPane : Node {
 						switch(value){
 							case WidthMacro.PARENT: size.x=parent.size.x; break;
 							case WidthMacro.DYNAMIC:
-								NWNLogger.xmlWarning(xmlNode, className~": width=DYNAMIC is not supported yet");
+								NWNLogger.xmlLimitation(xmlNode, className~": width=DYNAMIC is not yet supported");
 								size.x=10;
 								break;
 							default:
@@ -260,7 +260,7 @@ class UIPane : Node {
 						switch(value){
 							case HeightMacro.PARENT: size.y=parent.size.y; break;
 							case HeightMacro.DYNAMIC: 
-								NWNLogger.xmlWarning(xmlNode, className~": height=DYNAMIC is not supported yet");
+								NWNLogger.xmlLimitation(xmlNode, className~": height=DYNAMIC is not yet supported");
 								size.y=10;
 								break;
 							default:
@@ -838,7 +838,7 @@ class UIText : UIPane {
 					case "strref":
 						if(text=="")
 							text = "{strref}";
-						NWNLogger.xmlWarning(xmlNode, className~": strref is not handled yet");
+						NWNLogger.xmlLimitation(xmlNode, className~": strref is not yet supported");
 						xmlNode.attr.remove(key);
 						break;
 					case "text":
