@@ -3,6 +3,13 @@
 
 - by Crom (Thibaut CHARLES)
 
+# Notes
+
+This program is no more useful since I discovered the parameter `idleexpiretime` (from UIScene) that allows to reload the GUI file from disk when closed.
+
+Basically, you set `idleexpiretime` to a low value (ie 0.1) and then in-game, you just have to close & open the GUI to reload it.
+
+
 
 # Features
 
@@ -14,7 +21,6 @@
 # Planned features
 
 - Handle UIListBox & UIScrollbar
-- Editable UIText
 - OnXXX basic function calls (ie UIButton_Input_ShowObject, UIObject_Misc_SetLocalVarString, etc.)
 - STRREF support
 - Local var support
