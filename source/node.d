@@ -11,6 +11,7 @@ import gtk.Image;
 import gtk.VBox;
 import gtk.Label;
 import gtk.TextView;
+import gtk.TextBuffer;
 import gdk.RGBA;
 import gdk.Cairo;
 import gdk.Event;
@@ -174,9 +175,6 @@ class UIScene : Node {
 					}
 					xmlNode.attr.remove(key);
 					break;
-				case "OnAdd": 
-					xmlNode.attr.remove(key);
-					break;//TODO impl
 
 				case "x","y": //position should always be 0
 					xmlNode.attr.remove(key);
@@ -191,8 +189,7 @@ class UIScene : Node {
 					xmlNode.attr.remove(key);
 					break;
 
-				case "priority",
-				     "updaterate",
+				case "updaterate",
 				     "draggable",
 				     "dragregion_x",
 				     "dragregion_y",
@@ -211,7 +208,7 @@ class UIScene : Node {
 				     "OnRemove",
 				     "OnBackout",
 				     "OnUpdate",
-				     "OnUnhandledMouseClick",
+				     "OnUnhandledMouseClick"
 				     :
 					NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
 					xmlNode.attr.remove(key);
@@ -666,8 +663,8 @@ class UIButton : UIPane {
 			try{
 				switch(key){
 					case "strref":
-						if(text=="")
-							text = "{strref}";
+						if(defaultText=="")
+							defaultText = "{strref}";
 						NWNLogger.xmlLimitation(xmlNode, className~": strref is not yet supported");
 						xmlNode.attr.remove(key);
 						break;
@@ -973,7 +970,6 @@ class UIText : UIPane {
 
 		auto stylesheet = Resource.FindFileRes!NwnXml("fontfamily.xml");
 		auto styleNode = stylesheet.root.FindFirstByName(xmlNode.attr["style"]);
-		if(styleNode !is null){
 
 		Widget textWid;
 		TextBuffer textBuf;
