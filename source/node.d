@@ -147,8 +147,7 @@ class UIScene : Node {
 	this(NwnXmlNode* xmlNode){
 		string name;
 		Vect size;
-
-		foreach(key ; xmlNode.attr.byKey){
+		foreach(key ; xmlNode.attr.keys.idup){
 			auto value = xmlNode.attr[key];
 			switch(key){
 				case "name": 
@@ -263,7 +262,7 @@ class UIPane : Node {
 		Vect pos, size;
 		bool visible = true;
 
-		foreach(key ; xmlNode.attr.byKey){
+		foreach(key ; xmlNode.attr.keys.idup){
 			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
@@ -389,7 +388,7 @@ class UIFrame : UIPane {
 		Material mfill;//, mtopleft, mtop, mtopright, mleft, mright, mbottomleft, mbottom, mbottomright;
 		Material[8] mborders;
 
-		foreach(key ; xmlNode.attr.byKey){
+		foreach(key ; xmlNode.attr.keys.idup){
 			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
@@ -598,7 +597,7 @@ class UIIcon : UIPane {
 	this(Node parent, NwnXmlNode* xmlNode){
 		Material mimg;
 
-		foreach(key ; xmlNode.attr.byKey){
+		foreach(key ; xmlNode.attr.keys.idup){
 			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
@@ -658,7 +657,7 @@ class UIIcon : UIPane {
 class UIButton : UIPane {
 	this(Node parent, NwnXmlNode* xmlNode){
 
-		foreach(key ; xmlNode.attr.byKey){
+		foreach(key ; xmlNode.attr.keys.idup){
 			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
@@ -848,7 +847,7 @@ class UIText : UIPane {
 		string fontfamily = "";
 
 
-		foreach(key ; xmlNode.attr.byKey){
+		foreach(key ; xmlNode.attr.keys.idup){
 			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
