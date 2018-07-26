@@ -6,8 +6,8 @@ import std.string;
 import core.thread;
 import std.datetime : StopWatch, SysTime;
 
-import gtk.Main;
-import gdk.Threads;
+//import gtk.Main;
+//import gdk.Threads;
 
 import nwnxml;
 import resource;
@@ -20,7 +20,7 @@ SysTime openedFileDate;
 
 int main(string[] args)
 {
-	Main.init(args);//init GTK
+	//Main.init(args);//init GTK
 
     //Handle command-line args
     string file, respath;
@@ -55,32 +55,34 @@ int main(string[] args)
 
 	auto window = new Window();
 
+	Window.SetScene(BuildFromXmlFile(openedFile));
 
-	extern(C) int wrap(string fun)(void* ret){
-		mixin(fun~"();");
-		return cast(ubyte)ret!=0;
-	}
 
-	threadsAddTimeout(0, &(wrap!"ReloadFile"), cast(void*)0);
-	threadsAddTimeout(200, &(wrap!"ReloadFileIfNeeded"), cast(void*)1);
-	Main.run();
+	//extern(C) int wrap(string fun)(void* ret){
+	//	mixin(fun~"();");
+	//	return cast(ubyte)ret!=0;
+	//}
+
+	//threadsAddTimeout(0, &(wrap!"ReloadFile"), cast(void*)0);
+	//threadsAddTimeout(200, &(wrap!"ReloadFileIfNeeded"), cast(void*)1);
+	//Main.run();
 	return 0;
 }
 
-void ReloadFileIfNeeded(){
-	if(openedFile.timeLastModified > openedFileDate){
-		//File changed
-		ReloadFile();
-	}
-}
+//void ReloadFileIfNeeded(){
+//	if(openedFile.timeLastModified > openedFileDate){
+//		//File changed
+//		ReloadFile();
+//	}
+//}
 
-void ReloadFile(){
-	openedFileDate = openedFile.timeLastModified;
+//void ReloadFile(){
+//	openedFileDate = openedFile.timeLastModified;
 
-	Window.ClearLog();
+//	Window.ClearLog();
 
-	Window.SetScene(BuildFromXmlFile(openedFile));
-}
+//	Window.SetScene(BuildFromXmlFile(openedFile));
+//}
 
 UIScene BuildFromXmlFile(in string file){
 	if(!exists(file)){
@@ -106,7 +108,7 @@ UIScene BuildFromXmlFile(in string file){
 	}
 	sw.stop();
 	info("Parsed xml in ",sw.peek().to!("msecs",float)," ms");
-	
+
 
 	//=================================================== Create object tree
 	sw.reset();
@@ -124,7 +126,7 @@ UIScene BuildFromXmlFile(in string file){
 }
 
 UIScene BuildWidgets(NwnXmlNode* xmlNode, Node parent){
-	
+
 	if(xmlNode.tag == "ROOT"){
 		UIScene scene;
 
@@ -152,10 +154,10 @@ UIScene BuildWidgets(NwnXmlNode* xmlNode, Node parent){
 	else{
 		try{
 			switch(xmlNode.tag){
-				case "UIPane": 
+				case "UIPane":
 					parent = new UIPane(parent, xmlNode);
 					break;
-				case "UIFrame": 
+				case "UIFrame":
 					parent = new UIFrame(parent, xmlNode);
 					break;
 				case "UIIcon":
@@ -169,7 +171,7 @@ UIScene BuildWidgets(NwnXmlNode* xmlNode, Node parent){
 					break;
 
 				default:
-					NWNLogger.xmlWarning(xmlNode, xmlNode.tag~" is not handled by the program. Treated as a UIPane");
+					//NWNLogger.xmlWarning(xmlNode, xmlNode.tag~" is not handled by the program. Treated as a UIPane");
 					parent = new UIPane(parent, xmlNode);
 					break;
 

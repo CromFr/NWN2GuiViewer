@@ -4,22 +4,22 @@ import std.stdio;
 import std.conv : to, parse, ConvException;
 import std.traits;
 import std.string : toUpper, split, indexOf;
-import gtk.MainWindow;
-import gtk.Widget;
-import gtk.Layout;
-import gtk.Image;
-import gtk.VBox;
-import gtk.Label;
-import gtk.TextView;
-import gtk.TextBuffer;
-import gdk.RGBA;
-import gdk.Cairo;
-import gdk.Event;
-import cairo.Context;
-import cairo.ImageSurface;
-import cairo.Pattern;
-import gdk.Pixbuf;
-import cairo.Surface;
+//import gtk.MainWindow;
+//import gtk.Widget;
+//import gtk.Layout;
+//import gtk.Image;
+//import gtk.VBox;
+//import gtk.Label;
+//import gtk.TextView;
+//import gtk.TextBuffer;
+//import gdk.RGBA;
+//import gdk.Cairo;
+//import gdk.Event;
+//import cairo.Context;
+//import cairo.ImageSurface;
+//import cairo.Pattern;
+//import gdk.Pixbuf;
+//import cairo.Surface;
 import material;
 import resource;
 import nwnxml;
@@ -94,27 +94,7 @@ class BuildException : Exception {
 //#######################################################################################
 class Node {
 	this(string _name, Node _parent, in Vect _position, in Vect _size, in Vect _xmlPosition) {
-
-		name = _name;
-		position = _position;
-		size = _size;
-		if(size.x<=0) size.x = 1;
-		if(size.y<=0) size.y = 1;
-		xmlPosition = _xmlPosition;
-
-		parent = _parent;
-
-		container = new Layout(null, null);
-		container.setSizeRequest(size.x, size.y);
-		container.setSize(size.x, size.y);
-		container.setHscrollPolicy(GtkScrollablePolicy.MINIMUM);
-		container.setVscrollPolicy(GtkScrollablePolicy.MINIMUM);
-		container.setName(name);
-	
-		if(parent !is null){
-			parent.children ~= this;
-			parent.container.put(container, position.x, position.y);
-		}
+		set(_name, _parent, _position, _size, _xmlPosition);
 	}
 
 	string name;
@@ -125,12 +105,36 @@ class Node {
 
 	Node[] children;
 
-	Layout container;
+	//Layout container;
 
 	Vect xmlPosition;
 
 	@property string className() const{
 		return typeid(this).name.split(".")[1];
+	}
+
+	protected this(){}
+	protected void set(string _name, Node _parent, in Vect _position, in Vect _size, in Vect _xmlPosition){
+		name = _name;
+		position = _position;
+		size = _size;
+		if(size.x<=0) size.x = 1;
+		if(size.y<=0) size.y = 1;
+		xmlPosition = _xmlPosition;
+
+		parent = _parent;
+
+		//container = new Layout(null, null);
+		//container.setSizeRequest(size.x, size.y);
+		//container.setSize(size.x, size.y);
+		//container.setHscrollPolicy(GtkScrollablePolicy.MINIMUM);
+		//container.setVscrollPolicy(GtkScrollablePolicy.MINIMUM);
+		//container.setName(name);
+
+		//if(parent !is null){
+		//	parent.children ~= this;
+		//	parent.container.put(container, position.x, position.y);
+		//}
 	}
 }
 
@@ -145,12 +149,14 @@ class UIScene : Node {
 
 
 	this(NwnXmlNode* xmlNode){
+		super();
+
 		string name;
 		Vect size;
 		foreach(key ; xmlNode.attr.keys.idup){
 			auto value = xmlNode.attr[key];
 			switch(key){
-				case "name": 
+				case "name":
 					name=value;
 					xmlNode.attr.remove(key);
 					break;
@@ -209,7 +215,7 @@ class UIScene : Node {
 				     "OnUpdate",
 				     "OnUnhandledMouseClick"
 				     :
-					NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
+					//NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
 					xmlNode.attr.remove(key);
 					break;
 
@@ -223,32 +229,32 @@ class UIScene : Node {
 			}
 		}
 
-		super(name, null, Vect(0,0), size, Vect(cast(int)(xmlNode.column),cast(int)(xmlNode.line)));
+		super.set(name, null, Vect(0,0), size, Vect(cast(int)(xmlNode.column),cast(int)(xmlNode.line)));
 
 
 		//window background
-		auto pbuf = new Pixbuf(RES_XPM_BACKGROUND);
-		auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
-		auto ctx = Context.create(surface);
-		setSourcePixbuf(ctx, pbuf, 0, 0);
-		ctx.paint();
-		
-		auto fill = Pattern.createForSurface(surface);
-		fill.setExtend(CairoExtend.REPEAT);
-		container.addOnDraw((Scoped!Context c, Widget w){
-			c.setSource(fill);
-			c.paint();
+		//auto pbuf = new Pixbuf(RES_XPM_BACKGROUND);
+		//auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
+		//auto ctx = Context.create(surface);
+		//setSourcePixbuf(ctx, pbuf, 0, 0);
+		//ctx.paint();
 
-			c.identityMatrix();
-			return false;
-		});
+		//auto fill = Pattern.createForSurface(surface);
+		//fill.setExtend(CairoExtend.REPEAT);
+		//container.addOnDraw((Scoped!Context c, Widget w){
+		//	c.setSource(fill);
+		//	c.paint();
+
+		//	c.identityMatrix();
+		//	return false;
+		//});
 
 		//Register instance
 		m_inst = this;
 	}
 
 	enum FullscreenSize = Vect(1024, 768);
-	
+
 	private __gshared UIScene m_inst;
 }
 
@@ -258,6 +264,13 @@ class UIScene : Node {
 //#######################################################################################
 class UIPane : Node {
 	this(Node parent, NwnXmlNode* xmlNode){
+		super();
+		set(parent, xmlNode);
+	}
+
+	protected this(){}
+	protected void set(Node parent, NwnXmlNode* xmlNode){
+
 		string name;
 		Vect pos, size;
 		bool visible = true;
@@ -274,7 +287,7 @@ class UIPane : Node {
 						switch(value){
 							case WidthMacro.PARENT: size.x=parent.size.x; break;
 							case WidthMacro.DYNAMIC:
-								NWNLogger.xmlLimitation(xmlNode, className~": width=DYNAMIC is not yet supported");
+								//NWNLogger.xmlLimitation(xmlNode, className~": width=DYNAMIC is not yet supported");
 								size.x=10;
 								break;
 							default:
@@ -288,8 +301,8 @@ class UIPane : Node {
 					case "height":
 						switch(value){
 							case HeightMacro.PARENT: size.y=parent.size.y; break;
-							case HeightMacro.DYNAMIC: 
-								NWNLogger.xmlLimitation(xmlNode, className~": height=DYNAMIC is not yet supported");
+							case HeightMacro.DYNAMIC:
+								//NWNLogger.xmlLimitation(xmlNode, className~": height=DYNAMIC is not yet supported");
 								size.y=10;
 								break;
 							default:
@@ -313,7 +326,7 @@ class UIPane : Node {
 						xmlNode.attr.remove(key);
 						break;
 
-					
+
 					case "MouseDownSFX",
 					     "MouseUpSFX",
 					     "MouseDragSFX",
@@ -324,7 +337,7 @@ class UIPane : Node {
 					     "OnLeftDoubleClick",
 					     "OnRightClick",
 					     "OnRightDoubleClick":
-						NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
+						//NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
 						xmlNode.attr.remove(key);
 						break;
 
@@ -350,7 +363,7 @@ class UIPane : Node {
 				case XMacro.LEFT: pos.x=0; break;
 				case XMacro.RIGHT: pos.x=parent.size.x-size.x; break;
 				case XMacro.CENTER: pos.x=parent.size.x/2-size.x/2; break;
-				default: 
+				default:
 					try pos.x=xmlNode.attr["x"].to!int;
 					catch(ConvException e)
 						NWNLogger.xmlWarning(xmlNode,  "x="~xmlNode.attr["x"]~" is not an int ("~e.msg~")");
@@ -371,12 +384,12 @@ class UIPane : Node {
 			}
 			xmlNode.attr.remove("y");
 		}
-		super(name, parent, pos, size, Vect(cast(int)(xmlNode.column),cast(int)(xmlNode.line)));
+		super.set(name, parent, pos, size, Vect(cast(int)(xmlNode.column),cast(int)(xmlNode.line)));
 
-		if(!visible){
-			container.setNoShowAll(true);
-			container.setVisible(visible);
-		}
+		//if(!visible){
+		//	container.setNoShowAll(true);
+		//	container.setVisible(visible);
+		//}
 	}
 }
 
@@ -385,8 +398,10 @@ class UIPane : Node {
 //#######################################################################################
 class UIFrame : UIPane {
 	this(Node parent, NwnXmlNode* xmlNode){
-		Material mfill;//, mtopleft, mtop, mtopright, mleft, mright, mbottomleft, mbottom, mbottomright;
-		Material[8] mborders;
+		super();
+
+		//Material mfill;//, mtopleft, mtop, mtopright, mleft, mright, mbottomleft, mbottom, mbottomright;
+		//Material[8] mborders;
 
 		foreach(key ; xmlNode.attr.keys.idup){
 			auto value = xmlNode.attr[key];
@@ -398,43 +413,43 @@ class UIFrame : UIPane {
 							NWNLogger.xmlWarning(xmlNode, key~"="~value~"  is not valid. Possible values are: ",EnumMembers!FillStyle);
 						xmlNode.attr.remove(key);
 						break;
-					case "fill": 
-						mfill = Resource.FindFileRes!Material(value);
+					case "fill":
+						//mfill = Resource.FindFileRes!Material(value);
 						//xmlNode.attr.remove(key);
 						break;
-					case "topleft": 
-						mborders[0] = Resource.FindFileRes!Material(value);
+					case "topleft":
+						//mborders[0] = Resource.FindFileRes!Material(value);
 						xmlNode.attr.remove(key);
 						break;
-					case "top": 
-						mborders[1] = Resource.FindFileRes!Material(value);
+					case "top":
+						//mborders[1] = Resource.FindFileRes!Material(value);
 						xmlNode.attr.remove(key);
 						break;
-					case "topright": 
-						mborders[2] = Resource.FindFileRes!Material(value);
+					case "topright":
+						//mborders[2] = Resource.FindFileRes!Material(value);
 						xmlNode.attr.remove(key);
 						break;
-					case "left": 
-						mborders[3] = Resource.FindFileRes!Material(value);
+					case "left":
+						//mborders[3] = Resource.FindFileRes!Material(value);
 						xmlNode.attr.remove(key);
 						break;
-					case "right": 
-						mborders[4] = Resource.FindFileRes!Material(value);
+					case "right":
+						//mborders[4] = Resource.FindFileRes!Material(value);
 						xmlNode.attr.remove(key);
 						break;
-					case "bottomleft": 
-						mborders[5] = Resource.FindFileRes!Material(value);
+					case "bottomleft":
+						//mborders[5] = Resource.FindFileRes!Material(value);
 						xmlNode.attr.remove(key);
 						break;
-					case "bottom": 
-						mborders[6] = Resource.FindFileRes!Material(value);
+					case "bottom":
+						//mborders[6] = Resource.FindFileRes!Material(value);
 						xmlNode.attr.remove(key);
 						break;
-					case "bottomright": 
-						mborders[7] = Resource.FindFileRes!Material(value);
+					case "bottomright":
+						//mborders[7] = Resource.FindFileRes!Material(value);
 						xmlNode.attr.remove(key);
 						break;
-					case "border": 
+					case "border":
 						try border = value.to!uint;
 						catch(ConvException e)
 							NWNLogger.xmlWarning(xmlNode,  key~"="~value~" is not an int ("~e.msg~")");
@@ -450,10 +465,10 @@ class UIFrame : UIPane {
 					     "mvside",
 					     "maside",
 					     "color":
-						NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
+						//NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
 						xmlNode.attr.remove(key);
 						break;
-					
+
 					default: break;
 				}
 			}
@@ -468,7 +483,7 @@ class UIFrame : UIPane {
 		if("height" !in xmlNode.attr)
 			xmlNode.attr["height"] = "PARENT_HEIGHT";
 
-		super(parent, xmlNode);
+		super.set(parent, xmlNode);
 
 		if(cast(UIButton)parent !is null && "state" in xmlNode.attr){
 			try{
@@ -480,80 +495,80 @@ class UIFrame : UIPane {
 		}
 
 		fillsize = size-2*border;
-		if(mfill !is null){
+		//if(mfill !is null){
 
 			//Load surface for pattern
-			Pixbuf pbuf = mfill;
-			if(fillstyle == FillStyle.STRETCH)
-				pbuf = pbuf.scaleSimple(fillsize.x,fillsize.y,GdkInterpType.BILINEAR);
+			//Pixbuf pbuf = mfill;
+			//if(fillstyle == FillStyle.STRETCH)
+			//	pbuf = pbuf.scaleSimple(fillsize.x,fillsize.y,GdkInterpType.BILINEAR);
 
-			auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
-			auto ctx = Context.create(surface);
-			setSourcePixbuf(ctx, pbuf, 0, 0);
-			ctx.paint();
+			//auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
+			//auto ctx = Context.create(surface);
+			//setSourcePixbuf(ctx, pbuf, 0, 0);
+			//ctx.paint();
 
 			//Pattern
-			fill = Pattern.createForSurface(surface);
+			//fill = Pattern.createForSurface(surface);
 
-			if(fillstyle == FillStyle.TILE)
-				fill.setExtend(CairoExtend.REPEAT);
-			else
-				fill.setExtend(CairoExtend.NONE);
-		}
+			//if(fillstyle == FillStyle.TILE)
+			//	fill.setExtend(CairoExtend.REPEAT);
+			//else
+			//	fill.setExtend(CairoExtend.NONE);
+		//}
 
-		foreach(index, ref mat ; mborders){
-			if(mat !is null){
-				auto bordergeom = GetBorderGeometry(index);
-				Pixbuf pbuf = mat.scaleSimple(bordergeom.width,bordergeom.height,GdkInterpType.BILINEAR);
-				auto surface = ImageSurface.create(CairoFormat.ARGB32, bordergeom.width, bordergeom.height);
-				auto ctx = Context.create(surface);
-				setSourcePixbuf(ctx, pbuf, 0, 0);
-				ctx.paint();
+		//foreach(index, ref mat ; mborders){
+		//	if(mat !is null){
+		//		auto bordergeom = GetBorderGeometry(index);
+		//		Pixbuf pbuf = mat.scaleSimple(bordergeom.width,bordergeom.height,GdkInterpType.BILINEAR);
+		//		auto surface = ImageSurface.create(CairoFormat.ARGB32, bordergeom.width, bordergeom.height);
+		//		auto ctx = Context.create(surface);
+		//		setSourcePixbuf(ctx, pbuf, 0, 0);
+		//		ctx.paint();
 
-				//Pattern
-				borders[index] = Pattern.createForSurface(surface);
-			}
-		}
+		//		//Pattern
+		//		borders[index] = Pattern.createForSurface(surface);
+		//	}
+		//}
 
 
-		container.addOnDraw((Scoped!Context c, Widget w){
+		//container.addOnDraw((Scoped!Context c, Widget w){
 
-			foreach(index, ref pattern ; borders){
-				if(pattern !is null){
-					c.save;
+		//	foreach(index, ref pattern ; borders){
+		//		if(pattern !is null){
+		//			c.save;
 
-					auto bordergeom = GetBorderGeometry(index);
-					c.translate(bordergeom.x, bordergeom.y);
-					c.setSource(pattern);
-					c.rectangle(0, 0, bordergeom.width, bordergeom.height);
-					c.clip();
-					c.paintWithAlpha(opacity);
+		//			auto bordergeom = GetBorderGeometry(index);
+		//			c.translate(bordergeom.x, bordergeom.y);
+		//			c.setSource(pattern);
+		//			c.rectangle(0, 0, bordergeom.width, bordergeom.height);
+		//			c.clip();
+		//			c.paintWithAlpha(opacity);
 
-					c.restore;
-				}
-			}
-			
+		//			c.restore;
+		//		}
+		//	}
 
-			if(fill !is null){
-				c.save;
 
-				//todo: handle fillstyle=center here?
-				c.translate(border, border);
-				c.setSource(fill);
-				c.rectangle(0, 0, fillsize.x, fillsize.y);
-				c.clip();
-				c.paintWithAlpha(opacity);
+		//	if(fill !is null){
+		//		c.save;
 
-				c.restore;
-			}
-			c.identityMatrix();
-			return false;
-		});
+		//		//todo: handle fillstyle=center here?
+		//		c.translate(border, border);
+		//		c.setSource(fill);
+		//		c.rectangle(0, 0, fillsize.x, fillsize.y);
+		//		c.clip();
+		//		c.paintWithAlpha(opacity);
+
+		//		c.restore;
+		//	}
+		//	c.identityMatrix();
+		//	return false;
+		//});
 	}
-	
 
 
-	
+
+
 
 
 	enum FillStyle : string{
@@ -562,12 +577,12 @@ class UIFrame : UIPane {
 		CENTER="center"
 	}
 
-	Pattern fill;
+	//Pattern fill;
 	FillStyle fillstyle = FillStyle.STRETCH;
 	Vect fillsize;
 
 	uint border = 0;
-	Pattern[8] borders;
+	//Pattern[8] borders;
 
 private:
 	auto GetBorderGeometry(size_t borderIndex){
@@ -595,14 +610,16 @@ private:
 //#######################################################################################
 class UIIcon : UIPane {
 	this(Node parent, NwnXmlNode* xmlNode){
-		Material mimg;
+		super();
+
+		//Material mimg;
 
 		foreach(key ; xmlNode.attr.keys.idup){
 			auto value = xmlNode.attr[key];
 			try{
 				switch(key){
-					case "img": 
-						mimg = Resource.FindFileRes!Material(value);
+					case "img":
+						//mimg = Resource.FindFileRes!Material(value);
 						xmlNode.attr.remove(key);
 						break;
 					default: break;
@@ -613,40 +630,40 @@ class UIIcon : UIPane {
 			}
 		}
 
-		super(parent, xmlNode);
+		super.set(parent, xmlNode);
 
-		if(mimg !is null){
+		//if(mimg !is null){
 
 			//Load surface for pattern
-			Pixbuf pbuf = mimg.scaleSimple(size.x,size.y,GdkInterpType.BILINEAR);
+			//Pixbuf pbuf = mimg.scaleSimple(size.x,size.y,GdkInterpType.BILINEAR);
 
-			auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
-			auto ctx = Context.create(surface);
-			setSourcePixbuf(ctx, pbuf, 0, 0);
-			ctx.paint();
+			//auto surface = ImageSurface.create(CairoFormat.ARGB32, pbuf.getWidth, pbuf.getHeight);
+			//auto ctx = Context.create(surface);
+			//setSourcePixbuf(ctx, pbuf, 0, 0);
+			//ctx.paint();
 
-			//Pattern
-			img = Pattern.createForSurface(surface);
-			img.setExtend(CairoExtend.NONE);
-		}
+			////Pattern
+			//img = Pattern.createForSurface(surface);
+			//img.setExtend(CairoExtend.NONE);
+		//}
 
 
 
-		container.addOnDraw((Scoped!Context c, Widget w){
-			if(img !is null){
-				c.save;
+		//container.addOnDraw((Scoped!Context c, Widget w){
+		//	if(img !is null){
+		//		c.save;
 
-				c.setSource(img);
-				c.paintWithAlpha(opacity);//todo: handle alpha
+		//		c.setSource(img);
+		//		c.paintWithAlpha(opacity);//todo: handle alpha
 
-				c.restore;
-			}
-			c.identityMatrix();
-			return false;
-		});
+		//		c.restore;
+		//	}
+		//	c.identityMatrix();
+		//	return false;
+		//});
 	}
 
-	Pattern img;
+	//Pattern img;
 }
 
 
@@ -656,6 +673,7 @@ class UIIcon : UIPane {
 //#######################################################################################
 class UIButton : UIPane {
 	this(Node parent, NwnXmlNode* xmlNode){
+		super();
 
 		foreach(key ; xmlNode.attr.keys.idup){
 			auto value = xmlNode.attr[key];
@@ -664,10 +682,10 @@ class UIButton : UIPane {
 					case "strref":
 						if(defaultText=="")
 							defaultText = "{strref}";
-						NWNLogger.xmlLimitation(xmlNode, className~": strref is not yet supported");
+						//NWNLogger.xmlLimitation(xmlNode, className~": strref is not yet supported");
 						xmlNode.attr.remove(key);
 						break;
-					case "text": 
+					case "text":
 						defaultText = value;
 						xmlNode.attr.remove(key);
 						break;
@@ -681,7 +699,7 @@ class UIButton : UIPane {
 					     "disabledtextcolor",
 					     "OnSelected",
 					     "OnUnselected":
-						NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
+						//NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
 						xmlNode.attr.remove(key);
 						break;
 					default: break;
@@ -692,7 +710,7 @@ class UIButton : UIPane {
 			}
 		}
 
-		super(parent, xmlNode);
+		super.set(parent, xmlNode);
 
 
 		if("style" in xmlNode.attr){
@@ -746,40 +764,40 @@ class UIButton : UIPane {
 		//HIFOCUS: has been pressed, mouse if over
 		//DISABLED: disabled by parameter/script
 
-		container.addOnButtonPress(delegate(Event e, Widget w){
-			foreach(state, node ; childrenFrames){
-				SetState(State.DOWN);
-			}
-			return false;
-		});
-		container.addOnButtonRelease((Event e, Widget w){
-			foreach(state, node ; childrenFrames){
-				if(mouseover) SetState(State.HIFOCUS);
-				else SetState(State.FOCUSED);
-			}
-			return false;
-		});
-		container.addOnEnterNotify((Event e, Widget w){
-			mouseover = true;
-			foreach(state, node ; childrenFrames){
-				SetState(State.HILITED);
-			}
-			return false;
-		});
-		container.addOnLeaveNotify((Event e, Widget w){
-			//Be sure that the mouse is out
-			// Because the event is also received on mouse click released
-			double x, y;
-			e.getCoords(x, y);
-			if(!(0<=x && x<size.x && 0<=y && y<size.y)){
-				mouseover = false;
-				SetState(State.UP);
-			}
-			return false;
-		});
+		//container.addOnButtonPress(delegate(Event e, Widget w){
+		//	foreach(state, node ; childrenFrames){
+		//		SetState(State.DOWN);
+		//	}
+		//	return false;
+		//});
+		//container.addOnButtonRelease((Event e, Widget w){
+		//	foreach(state, node ; childrenFrames){
+		//		if(mouseover) SetState(State.HIFOCUS);
+		//		else SetState(State.FOCUSED);
+		//	}
+		//	return false;
+		//});
+		//container.addOnEnterNotify((Event e, Widget w){
+		//	mouseover = true;
+		//	foreach(state, node ; childrenFrames){
+		//		SetState(State.HILITED);
+		//	}
+		//	return false;
+		//});
+		//container.addOnLeaveNotify((Event e, Widget w){
+		//	//Be sure that the mouse is out
+		//	// Because the event is also received on mouse click released
+		//	double x, y;
+		//	e.getCoords(x, y);
+		//	if(!(0<=x && x<size.x && 0<=y && y<size.y)){
+		//		mouseover = false;
+		//		SetState(State.UP);
+		//	}
+		//	return false;
+		//});
 	}
 
-	Pattern img;
+	//Pattern img;
 	bool mouseover = false;
 
 	enum State{
@@ -799,32 +817,32 @@ class UIButton : UIPane {
 	string defaultText;
 
 	void RegisterFrame(in State state, UIFrame frame){
-		if(state in childrenFrames){
-			childrenFrames[state].container.destroy();
-			childrenFrames[state].destroy();
-		}
+		//if(state in childrenFrames){
+		//	childrenFrames[state].container.destroy();
+		//	childrenFrames[state].destroy();
+		//}
 
-		childrenFrames[state] = frame;
-		frame.container.setNoShowAll(true);
-		frame.container.setVisible(state==State.UP || state==State.BASE);
+		//childrenFrames[state] = frame;
+		//frame.container.setNoShowAll(true);
+		//frame.container.setVisible(state==State.UP || state==State.BASE);
 	}
 	void RegisterText(UIText text){
-		if(childText !is null){
-			childText.container.destroy();
-			childText.destroy();
-		}
+		//if(childText !is null){
+		//	childText.container.destroy();
+		//	childText.destroy();
+		//}
 
-		childText = text;
+		//childText = text;
 	}
 
 	void SetState(in State state){
-		foreach(s, node ; childrenFrames){
-			node.container.setVisible(s==state || s==State.BASE);
-		}
-		if(childText !is null){
-			childText.container.setVisible(false);
-			childText.container.setVisible(true);
-		}
+		//foreach(s, node ; childrenFrames){
+		//	node.container.setVisible(s==state || s==State.BASE);
+		//}
+		//if(childText !is null){
+		//	childText.container.setVisible(false);
+		//	childText.container.setVisible(true);
+		//}
 	}
 }
 
@@ -834,15 +852,16 @@ class UIButton : UIPane {
 //#######################################################################################
 class UIText : UIPane {
 	this(Node parent, NwnXmlNode* xmlNode){
+		super();
 
 		bool editable = false;
 		bool multiline = false;
 		int lines = 1;
-		auto halign = Align.START;
-		auto valign = Align.START;
+		//auto halign = Align.START;
+		//auto valign = Align.START;
 		uppercase = false;
 		string text = "";
-		auto color = new RGBA(1,1,1);
+		//auto color = new RGBA(1,1,1);
 		uint fontsize = 14;
 		string fontfamily = "";
 
@@ -859,9 +878,9 @@ class UIText : UIPane {
 						break;
 					case "align":
 						switch(value) with(HAlign){
-							case HAlign.LEFT: halign = Align.START; break;
-							case HAlign.CENTER: halign = Align.CENTER; break;
-							case HAlign.RIGHT: halign = Align.END; break;
+							case HAlign.LEFT: /*halign = Align.START;*/ break;
+							case HAlign.CENTER: /*halign = Align.CENTER;*/ break;
+							case HAlign.RIGHT: /*halign = Align.END;*/ break;
 							default:
 								NWNLogger.xmlWarning(xmlNode, key~"="~value~" is not valid. Possible values are: ",EnumMembers!HAlign);
 						}
@@ -869,9 +888,9 @@ class UIText : UIPane {
 						break;
 					case "valign":
 						switch(value) with(VAlign){
-							case VAlign.TOP: valign = Align.START; break;
-							case VAlign.MIDDLE: valign = Align.CENTER; break;
-							case VAlign.BOTTOM: valign = Align.END; break;
+							case VAlign.TOP: /*valign = Align.START;*/ break;
+							case VAlign.MIDDLE: /*valign = Align.CENTER;*/ break;
+							case VAlign.BOTTOM: /*valign = Align.END;*/ break;
 							default:
 								NWNLogger.xmlWarning(xmlNode, key~"="~value~" is not valid. Possible values are: ",EnumMembers!VAlign);
 						}
@@ -898,11 +917,11 @@ class UIText : UIPane {
 					case "color":
 						try{
 							uint colorvalue = parse!int(value, 16);
-							color = new RGBA(
-								((colorvalue&0xFF0000)>>16)/255.0,
-								((colorvalue&0x00FF00)>>8)/255.0,
-								((colorvalue&0x0000FF))/255.0
-							);
+							//color = new RGBA(
+							//	((colorvalue&0xFF0000)>>16)/255.0,
+							//	((colorvalue&0x00FF00)>>8)/255.0,
+							//	((colorvalue&0x0000FF))/255.0
+							//);
 						}
 						catch(ConvException e)
 							NWNLogger.xmlWarning(xmlNode, key~"="~value~" is not a hexadecimal color value, ie 'F0F0F0' ("~e.msg~")");
@@ -934,7 +953,7 @@ class UIText : UIPane {
 					     "highlightcolor",
 					     "OnReturn",
 					     "OnLostFocus":
-						NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
+						//NWNLogger.xmlLimitation(xmlNode, className~": "~key~" is not yet supported");
 						xmlNode.attr.remove(key);
 						break;
 
@@ -942,7 +961,7 @@ class UIText : UIPane {
 					case "strref":
 						if(text=="")
 							text = "{strref}";
-						NWNLogger.xmlLimitation(xmlNode, className~": strref is not yet supported");
+						//NWNLogger.xmlLimitation(xmlNode, className~": strref is not yet supported");
 						xmlNode.attr.remove(key);
 						break;
 					case "text":
@@ -964,109 +983,109 @@ class UIText : UIPane {
 			}
 		}
 
-		super(parent, xmlNode);
+		super.set(parent, xmlNode);
 
 
-		auto stylesheet = Resource.FindFileRes!NwnXml("fontfamily.xml");
-		auto styleNode = stylesheet.root.FindFirstByName(xmlNode.attr["style"]);
+		//auto stylesheet = Resource.FindFileRes!NwnXml("fontfamily.xml");
+		//auto styleNode = stylesheet.root.FindFirstByName(xmlNode.attr["style"]);
 
-		Widget textWid;
-		TextBuffer textBuf;
+		//Widget textWid;
+		//TextBuffer textBuf;
 
 		if(editable){
-			auto textView = new TextView();
-			textView.overrideBackgroundColor(StateFlags.NORMAL, new RGBA(0,0,0,0));
+			//auto textView = new TextView();
+			//textView.overrideBackgroundColor(StateFlags.NORMAL, new RGBA(0,0,0,0));
 
-			//Make it editable
-			textView.setEditable(true);
+			////Make it editable
+			//textView.setEditable(true);
 
-			//text
-			textView.getBuffer.setText(text);
+			////text
+			//textView.getBuffer.setText(text);
 
-			//Multiline text
-			if(multiline) textView.setWrapMode(WrapMode.WORD_CHAR);
-			else textView.setWrapMode(WrapMode.NONE);
+			////Multiline text
+			//if(multiline) textView.setWrapMode(WrapMode.WORD_CHAR);
+			//else textView.setWrapMode(WrapMode.NONE);
 
-			//Line count limitation
-			textView.getBuffer.addOnInsertText((iter, toIns, pos, txtbuf){
-				if(txtbuf.getLineCount>=lines && toIns.indexOf('\n')!=-1){
-					//do not insert
-				}
-				else{
-					txtbuf.insert(iter, toIns.toUpper);
-				}
-			});
+			////Line count limitation
+			//textView.getBuffer.addOnInsertText((iter, toIns, pos, txtbuf){
+			//	if(txtbuf.getLineCount>=lines && toIns.indexOf('\n')!=-1){
+			//		//do not insert
+			//	}
+			//	else{
+			//		txtbuf.insert(iter, toIns.toUpper);
+			//	}
+			//});
 
-			//Text alignment
-			switch(halign) with(Align){
-				case START:  textView.setJustification(Justification.LEFT); break;
-				case CENTER: textView.setJustification(Justification.CENTER); break;
-				case END:    textView.setJustification(Justification.RIGHT); break;
-				default: assert(0);
-			}
-			if(valign!=Align.START)NWNLogger.xmlLimitation(xmlNode, className~": valign is not yet supported with editable=true");
+			////Text alignment
+			//switch(halign) with(Align){
+			//	case START:  textView.setJustification(Justification.LEFT); break;
+			//	case CENTER: textView.setJustification(Justification.CENTER); break;
+			//	case END:    textView.setJustification(Justification.RIGHT); break;
+			//	default: assert(0);
+			//}
+			//if(valign!=Align.START)NWNLogger.xmlLimitation(xmlNode, className~": valign is not yet supported with editable=true");
 
-			//Color
-			textView.overrideColor(StateFlags.NORMAL, color);
+			////Color
+			//textView.overrideColor(StateFlags.NORMAL, color);
 
-			//Font
-			//See modifyFont (new PgFontDescription(PgFontDescription.fromString(family ~ " " ~ size)));
-			//textView.modifyFont("", cast(int)(fontsize*0.7));
-			import pango.PgFontDescription;
-			textView.overrideFont(PgFontDescription.fromString(""~(fontsize*0.7).to!int.to!string));
+			////Font
+			////See modifyFont (new PgFontDescription(PgFontDescription.fromString(family ~ " " ~ size)));
+			////textView.modifyFont("", cast(int)(fontsize*0.7));
+			//import pango.PgFontDescription;
+			//textView.overrideFont(PgFontDescription.fromString(""~(fontsize*0.7).to!int.to!string));
 
-			//Uppercase
-			if(uppercase){
-				auto buf = textView.getBuffer;
-				buf.setText(buf.getText.toUpper);
-				buf.addOnInsertText((iter, toIns, pos, txtbuf){
-					txtbuf.insert(iter, toIns.toUpper);
-				});
-			}
+			////Uppercase
+			//if(uppercase){
+			//	auto buf = textView.getBuffer;
+			//	buf.setText(buf.getText.toUpper);
+			//	buf.addOnInsertText((iter, toIns, pos, txtbuf){
+			//		txtbuf.insert(iter, toIns.toUpper);
+			//	});
+			//}
 
-			textView.setSizeRequest(size.x, size.y);
-			container.add(textView);
+			//textView.setSizeRequest(size.x, size.y);
+			//container.add(textView);
 		}
 		else{
-			auto lbl = new Label(text);
+			//auto lbl = new Label(text);
 
-			//Multiline
-			lbl.setLineWrap(multiline);
-			if(multiline) lbl.setLineWrapMode(PangoWrapMode.WORD);
+			////Multiline
+			//lbl.setLineWrap(multiline);
+			//if(multiline) lbl.setLineWrapMode(PangoWrapMode.WORD);
 
-			//Line count limitation
-			lbl.setLines(multiline? lines : 1);
+			////Line count limitation
+			//lbl.setLines(multiline? lines : 1);
 
-			//Text alignment
-			lbl.setHalign(halign);
-			lbl.setValign(valign);
+			////Text alignment
+			//lbl.setHalign(halign);
+			//lbl.setValign(valign);
 
-			//Color
-			lbl.overrideColor(StateFlags.NORMAL, color);
+			////Color
+			//lbl.overrideColor(StateFlags.NORMAL, color);
 
-			//Font
-			//See modifyFont (new PgFontDescription(PgFontDescription.fromString(family ~ " " ~ size)));
-			lbl.modifyFont("", cast(int)(fontsize*0.7));
+			////Font
+			////See modifyFont (new PgFontDescription(PgFontDescription.fromString(family ~ " " ~ size)));
+			//lbl.modifyFont("", cast(int)(fontsize*0.7));
 
-			//Uppercase
-			if(uppercase) lbl.setText(lbl.getText.toUpper);
+			////Uppercase
+			//if(uppercase) lbl.setText(lbl.getText.toUpper);
 
-			//Ignore events
-			lbl.setSensitive(false);
-			lbl.setEvents(0);
-			container.setEvents(0);
+			////Ignore events
+			//lbl.setSensitive(false);
+			//lbl.setEvents(0);
+			//container.setEvents(0);
 
 
-			lbl.setSizeRequest(size.x, size.y);
-			container.add(lbl);
+			//lbl.setSizeRequest(size.x, size.y);
+			//container.add(lbl);
 		}
 
-		
+
 
 		//Register to button
-		if(cast(UIButton)parent !is null){
-			(cast(UIButton)parent).RegisterText(this);
-		}
+		//if(cast(UIButton)parent !is null){
+		//	(cast(UIButton)parent).RegisterText(this);
+		//}
 	}
 
 	enum HAlign{
